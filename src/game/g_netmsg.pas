@@ -2777,6 +2777,7 @@ begin
   e_Buffer_Write(@NetOut, gPlayer1Settings.Team);
 
   g_Net_Client_Send(True, NET_CHAN_SERVICE);
+  g_Net_Flush(); // send immediately, there's no frames yet
 end;
 
 procedure MC_SEND_Chat(Txt: string; Mode: Byte);
@@ -2914,6 +2915,7 @@ begin
   e_Buffer_Write(@NetOut, Byte(NET_MSG_REQFST));
 
   g_Net_Client_Send(True, NET_CHAN_SERVICE);
+  g_Net_Flush(); // send immediately, because loading
 end;
 
 procedure MC_SEND_CheatRequest(Kind: Byte);
@@ -2986,9 +2988,11 @@ end;
 procedure ResDataMsgToBytes(var bytes: AByte; const ResData: TResDataMsg);
 var
   ResultStream: TMemoryStream;
+  dummy: Word = $FFFE;
 begin
   ResultStream := TMemoryStream.Create;
 
+  ResultStream.WriteBuffer(dummy, 2); //dummy length
   ResultStream.WriteBuffer(ResData.MsgId, SizeOf(ResData.MsgId)); //msgId
   ResultStream.WriteBuffer(ResData.FileSize, SizeOf(ResData.FileSize));  //file size
   ResultStream.WriteBuffer(ResData.FileData[0], ResData.FileSize);       //file data
@@ -3012,11 +3016,13 @@ procedure MapDataMsgToBytes(var bytes: AByte; const MapDataMsg: TMapDataMsg);
 var
   ResultStream: TMemoryStream;
   resCount: Integer;
+  dummy: Word = $FFFF;
 begin
   resCount := Length(MapDataMsg.ExternalResources);
 
   ResultStream := TMemoryStream.Create;
 
+  ResultStream.WriteBuffer(dummy, 2); //dummy length
   ResultStream.WriteBuffer(MapDataMsg.MsgId, SizeOf(MapDataMsg.MsgId)); //msgId
   ResultStream.WriteBuffer(MapDataMsg.FileSize, SizeOf(MapDataMsg.FileSize));  //file size
   ResultStream.WriteBuffer(MapDataMsg.FileData[0], MapDataMsg.FileSize);       //file data

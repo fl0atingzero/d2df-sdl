@@ -130,7 +130,7 @@ begin
   e_Buffer_Clear(@NetOut);
   e_Buffer_Write(@NetOut, Byte(NET_MMSG_GET));
 
-  P := enet_packet_create(Addr(NetOut.Data), NetOut.Len, Cardinal(ENET_PACKET_FLAG_RELIABLE));
+  P := enet_packet_create(Addr(NetOut.Data), NetOut.WritePos, Cardinal(ENET_PACKET_FLAG_RELIABLE));
   enet_peer_send(NetMPeer, NET_MCHAN_MAIN, P);
   enet_host_flush(NetMHost);
 
@@ -201,7 +201,7 @@ begin
 
     RX := enet_socket_receive(Sock, @SvAddr, @Buf, 1);
     if RX <= 0 then continue;
-    NetIn.Len := RX + 1;
+    NetIn.Cap := RX + 1;
     NetIn.ReadPos := 0;
 
     if e_Buffer_Read_Char(@NetIn) <> 'D' then continue;
@@ -269,7 +269,7 @@ begin
 
   g_Net_Slist_WriteInfo();
 
-  P := enet_packet_create(Addr(NetOut.Data), NetOut.Len, Cardinal(ENET_PACKET_FLAG_RELIABLE));
+  P := enet_packet_create(Addr(NetOut.Data), NetOut.WritePos, Cardinal(ENET_PACKET_FLAG_RELIABLE));
   enet_peer_send(NetMPeer, NET_MCHAN_UPD, P);
 
   enet_host_flush(NetMHost);
@@ -285,7 +285,7 @@ begin
   e_Buffer_Write(@NetOut, Byte(NET_MMSG_DEL));
   e_Buffer_Write(@NetOut, NetAddr.port);
 
-  P := enet_packet_create(Addr(NetOut.Data), NetOut.Len, Cardinal(ENET_PACKET_FLAG_RELIABLE));
+  P := enet_packet_create(Addr(NetOut.Data), NetOut.WritePos, Cardinal(ENET_PACKET_FLAG_RELIABLE));
   enet_peer_send(NetMPeer, NET_MCHAN_MAIN, P);
 
   enet_host_flush(NetMHost);

@@ -25,7 +25,6 @@ const
   NET_PROTOCOL_VER = 171;
 
   NET_MAXCLIENTS = 24;
-  NET_CHANS = 11;
 
   NET_CHAN_SERVICE = 0;
   NET_CHAN_IMPORTANT = 1;
@@ -38,6 +37,13 @@ const
   NET_CHAN_CHAT = 8;
   NET_CHAN_DOWNLOAD = 9;
   NET_CHAN_SHOTS = 10;
+
+  CH_RELIABLE = 0;
+  CH_UNRELIABLE = 1;
+  CH_DOWNLOAD = 2;
+  CH_MAX = CH_UNRELIABLE; // don't change this
+
+  NET_CHANS = 3;
 
   NET_NONE = 0;
   NET_SERVER = 1;
@@ -67,14 +73,15 @@ const
 
 type
   TNetClient = record
-    ID:      Byte;
-    Used:    Boolean;
-    State:   Byte;
-    Peer:    pENetPeer;
-    Player:  Word;
+    ID:       Byte;
+    Used:     Boolean;
+    State:    Byte;
+    Peer:     pENetPeer;
+    Player:   Word;
     RequestedFullUpdate: Boolean;
     RCONAuth: Boolean;
     Voted:    Boolean;
+    SendBuf:  array [0..CH_MAX] of TBuffer;
   end;
   TBanRecord = record
     IP: LongWord;
@@ -117,11 +124,12 @@ var
   NetClientPort: Word   = 25666;
 
   NetIn, NetOut: TBuffer;
+  NetSend: array [0..CH_MAX] of TBuffer;
 
-  NetClients:     array of TNetClient;
+  NetClients:     array of TNetClient = nil;
   NetClientCount: Byte = 0;
   NetMaxClients:  Byte = 255;
-  NetBannedHosts: array of TBanRecord;
+  NetBannedHosts: array of TBanRecord = nil;
 
   NetState:      Integer = NET_STATE_NONE;
 
@@ -151,12 +159,14 @@ function  g_Net_Host(IPAddr: LongWord; Port: enet_uint16; MaxClients: Cardinal =
 procedure g_Net_Host_Die();
 procedure g_Net_Host_Send(ID: Integer; Reliable: Boolean; Chan: Byte = NET_CHAN_GAME);
 function  g_Net_Host_Update(): enet_size_t;
+procedure g_Net_Host_FlushBuffers();
 
 function  g_Net_Connect(IP: string; Port: enet_uint16): Boolean;
 procedure g_Net_Disconnect(Forced: Boolean = False);
 procedure g_Net_Client_Send(Reliable: Boolean; Chan: Byte = NET_CHAN_GAME);
 function  g_Net_Client_Update(): enet_size_t;
 function  g_Net_Client_UpdateWhileLoading(): enet_size_t;
+procedure g_Net_Client_FlushBuffers();
 
 function  g_Net_Client_ByName(Name: string): pTNetClient;
 function  g_Net_Client_ByPlayer(PID: Word): pTNetClient;
@@ -191,6 +201,27 @@ uses
 
 { /// SERVICE FUNCTIONS /// }
 
+
+procedure SendBuffer(B: pTBuffer; Ch: Integer; Peer: pENetPeer);
+var
+  P: pENetPacket;
+  Fl: enet_uint32;
+begin
+  if Ch = CH_RELIABLE then Fl := ENET_PACKET_FLAG_RELIABLE
+  else Fl := 0;
+  if B^.WritePos > 0 then
+  begin
+    P := enet_packet_create(Addr(B^.Data), B^.WritePos, Fl);
+    if P <> nil then
+    begin
+      if Peer = nil then
+        enet_host_broadcast(NetHost, Ch, P)
+      else
+        enet_peer_send(Peer, Ch, P);
+    end;
+    e_Buffer_Clear(B);
+  end;
+end;
 
 function g_Net_FindSlot(): Integer;
 var
@@ -237,6 +268,9 @@ begin
     NetClients[N].RCONAuth := False;
     NetClients[N].Voted := False;
     NetClients[N].Player := 0;
+    NetClients[N].Peer := nil;
+      for I := 0 to CH_MAX do
+        e_Buffer_Clear(Addr(NetClients[N].SendBuf[CH_MAX]));
   end;
 
   Result := N;
@@ -247,9 +281,12 @@ var
   F: TextFile;
   IPstr: string;
   IP: LongWord;
+  I: Integer;
 begin
   e_Buffer_Clear(@NetIn);
   e_Buffer_Clear(@NetOut);
+  for I := 0 to CH_MAX do
+    e_Buffer_Clear(@NetSend[i]);
   SetLength(NetClients, 0);
   NetPeer := nil;
   NetHost := nil;
@@ -277,13 +314,21 @@ end;
 
 procedure g_Net_Flush();
 begin
+  if NetMode = NET_SERVER then
+    g_Net_Host_FlushBuffers()
+  else
+    g_Net_Client_FlushBuffers();
   enet_host_flush(NetHost);
 end;
 
 procedure g_Net_Cleanup();
+var
+  I: Integer;
 begin
   e_Buffer_Clear(@NetIn);
   e_Buffer_Clear(@NetOut);
+  for i := 0 to CH_MAX do
+    e_Buffer_Clear(@NetSend[i]);
 
   SetLength(NetClients, 0);
   NetClientCount := 0;
@@ -417,37 +462,48 @@ begin
   e_WriteLog('NET: Server stopped', MSG_NOTIFY);
 end;
 
+procedure g_Net_Host_FlushBuffers();
+var
+  I: Integer;
+begin
+  // send broadcast
+  SendBuffer(@NetSend[CH_RELIABLE], CH_RELIABLE, nil);
+  SendBuffer(@NetSend[CH_UNRELIABLE], CH_UNRELIABLE, nil);
+  // send to individual clients
+  if NetClients <> nil then
+    for I := Low(NetClients) to High(NetClients) do
+      with NetClients[I] do
+      begin
+        SendBuffer(@SendBuf[CH_RELIABLE], CH_RELIABLE, Peer);
+        SendBuffer(@SendBuf[CH_UNRELIABLE], CH_UNRELIABLE, Peer);
+      end;
+end;
 
 procedure g_Net_Host_Send(ID: Integer; Reliable: Boolean; Chan: Byte = NET_CHAN_GAME);
 var
-  P: pENetPacket;
-  F: enet_uint32;
+  I: Integer;
+  B: pTBuffer;
 begin
   if (Reliable) then
-    F := LongWord(ENET_PACKET_FLAG_RELIABLE)
+    I := CH_RELIABLE
   else
-    F := 0;
+    I := CH_UNRELIABLE;
 
   if (ID >= 0) then
   begin
-    if ID > High(NetClients) then Exit;
-    if NetClients[ID].Peer = nil then Exit;
-
-    P := enet_packet_create(Addr(NetOut.Data), NetOut.Len, F);
-    if not Assigned(P) then Exit;
-
-    enet_peer_send(NetClients[ID].Peer, Chan, P);
+    if (ID > High(NetClients)) or (NetClients[ID].Peer = nil) then 
+    begin 
+      e_Buffer_Clear(@NetOut);
+      Exit;
+    end;
+    B := Addr(NetClients[ID].SendBuf[I]);
   end
   else
   begin
-    P := enet_packet_create(Addr(NetOut.Data), NetOut.Len, F);
-    if not Assigned(P) then Exit;
-
-    enet_host_broadcast(NetHost, Chan, P);
+    B := Addr(NetSend[I]);
   end;
 
-  if NetDump then g_Net_DumpSendBuffer();
-  g_Net_Flush();
+  e_Buffer_Write(B, @NetOut);
   e_Buffer_Clear(@NetOut);
 end;
 
@@ -497,7 +553,7 @@ function g_Net_Host_Update(): enet_size_t;
 var
   IP: string;
   Port: Word;
-  ID: Integer;
+  ID, I: Integer;
   TC: pTNetClient;
   TP: TPlayer;
 begin
@@ -561,8 +617,6 @@ begin
         ID := Byte(NetEvent.peer^.data^);
         if ID > High(NetClients) then Exit;
         TC := @NetClients[ID];
-
-        if NetDump then g_Net_DumpRecvBuffer(NetEvent.packet^.data, NetEvent.packet^.dataLength);
         g_Net_HostMsgHandler(TC, NetEvent.packet);
       end;
 
@@ -653,22 +707,21 @@ begin
   e_WriteLog('NET: Disconnected', MSG_NOTIFY);
 end;
 
+procedure g_Net_Client_FlushBuffers();
+begin
+  SendBuffer(@NetSend[CH_RELIABLE], CH_RELIABLE, NetPeer);
+  SendBuffer(@NetSend[CH_UNRELIABLE], CH_UNRELIABLE, NetPeer);
+end;
+
 procedure g_Net_Client_Send(Reliable: Boolean; Chan: Byte = NET_CHAN_GAME);
 var
-  P: pENetPacket;
-  F: enet_uint32;
+  I: Integer;
 begin
   if (Reliable) then
-    F := LongWord(ENET_PACKET_FLAG_RELIABLE)
+    I := CH_RELIABLE
   else
-    F := 0;
-
-  P := enet_packet_create(Addr(NetOut.Data), NetOut.Len, F);
-  if not Assigned(P) then Exit;
-
-  enet_peer_send(NetPeer, Chan, P);
-  if NetDump then g_Net_DumpSendBuffer();
-  g_Net_Flush();
+    I := CH_UNRELIABLE;
+  e_Buffer_Write(@NetSend[I], @NetOut);
   e_Buffer_Clear(@NetOut);
 end;
 
@@ -680,7 +733,6 @@ begin
     case NetEvent.kind of
       ENET_EVENT_TYPE_RECEIVE:
       begin
-        if NetDump then g_Net_DumpRecvBuffer(NetEvent.packet^.data, NetEvent.packet^.dataLength);
         g_Net_ClientMsgHandler(NetEvent.packet);
       end;
 
@@ -702,7 +754,6 @@ begin
     case NetEvent.kind of
       ENET_EVENT_TYPE_RECEIVE:
       begin
-        if NetDump then g_Net_DumpRecvBuffer(NetEvent.packet^.data, NetEvent.packet^.dataLength);
         g_Net_ClientLightMsgHandler(NetEvent.packet);
       end;
 
@@ -714,7 +765,6 @@ begin
       end;
     end;
   end;
-  g_Net_Flush();
 end;
 
 function g_Net_Connect(IP: string; Port: enet_uint16): Boolean;
@@ -897,13 +947,13 @@ begin
   begin
     P := enet_packet_create(@Data[0], dataLength, F);
     if not Assigned(P) then Exit;
-    enet_peer_send(peer, Chan, P);
+    enet_peer_send(peer, CH_DOWNLOAD, P);
   end
   else
   begin
     P := enet_packet_create(@Data[0], dataLength, F);
     if not Assigned(P) then Exit;
-    enet_host_broadcast(NetHost, Chan, P);
+    enet_host_broadcast(NetHost, CH_DOWNLOAD, P);
   end;
 
   enet_host_flush(NetHost);
@@ -924,17 +974,16 @@ begin
   begin
     while (enet_host_service(NetHost, @downloadEvent, 0) > 0) do
     begin
-      if (downloadEvent.kind = ENET_EVENT_TYPE_RECEIVE) then
+      if (downloadEvent.kind = ENET_EVENT_TYPE_RECEIVE) and (downloadEvent.packet^.dataLength > 2) then
       begin
-        Ptr := downloadEvent.packet^.data;
-
+        Ptr := downloadEvent.packet^.data + 2; // skip length
         MID := Byte(Ptr^);
 
         if (MID = msgId) then
         begin
           msgStream := TMemoryStream.Create;
-          msgStream.SetSize(downloadEvent.packet^.dataLength);
-          msgStream.WriteBuffer(Ptr^, downloadEvent.packet^.dataLength);
+          msgStream.SetSize(downloadEvent.packet^.dataLength - 2);
+          msgStream.WriteBuffer(Ptr^, downloadEvent.packet^.dataLength - 2);
           msgStream.Seek(0, soFromBeginning);
 
           OuterLoop := False;
@@ -1085,9 +1134,9 @@ end;
 procedure g_Net_DumpSendBuffer();
 begin
   writeInt(NetDumpFile, gTime);
-  writeInt(NetDumpFile, LongWord(NetOut.Len));
+  writeInt(NetDumpFile, LongWord(NetOut.WritePos));
   writeInt(NetDumpFile, Byte(1));
-  NetDumpFile.WriteBuffer(NetOut.Data[0], NetOut.Len);
+  NetDumpFile.WriteBuffer(NetOut.Data[0], NetOut.WritePos);
 end;
 
 procedure g_Net_DumpRecvBuffer(Buf: penet_uint8; Len: LongWord);

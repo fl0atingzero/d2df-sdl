@@ -545,10 +545,17 @@ begin
   e_SoundUpdate();
 
   if NetMode = NET_SERVER then
-    g_Net_Host_Update
-  else
-    if (NetMode = NET_CLIENT) and (NetState <> NET_STATE_AUTH) then
-      g_Net_Client_UpdateWhileLoading;
+  begin
+    g_Net_Host_Update();
+    g_Net_Flush();
+  end
+  else if NetMode = NET_CLIENT then
+    if (NetState <> NET_STATE_AUTH) then
+    begin
+      g_Net_Client_UpdateWhileLoading();
+      g_Net_Flush();
+    end;
+
   wLoadingProgress := False;
 end;
 
@@ -586,12 +593,14 @@ begin
       if NetMode = NET_SERVER then g_Net_Host_Update()
       else if NetMode = NET_CLIENT then g_Net_Client_Update();
       Update();
+      if NetMode <> NET_NONE then g_Net_Flush();
     end;
   end
-  else
+  else if NetMode <> NET_NONE then
   begin
     if NetMode = NET_SERVER then g_Net_Host_Update()
     else if NetMode = NET_CLIENT then g_Net_Client_Update();
+    g_Net_Flush();
   end;
 
   if wLoadingQuit then

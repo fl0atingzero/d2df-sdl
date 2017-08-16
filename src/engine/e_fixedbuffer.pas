@@ -28,7 +28,7 @@ type
     Data: array [0..BUF_SIZE] of Byte; // один байт сверху на всякий случай
     ReadPos: Cardinal;
     WritePos: Cardinal;
-    Len: Cardinal;
+    Cap: Cardinal;
   end;
   pTBuffer = ^TBuffer;
 
@@ -56,6 +56,8 @@ procedure e_Buffer_Write(B: pTBuffer; V: Int64); overload;
 procedure e_Buffer_Write(B: pTBuffer; V: string); overload;
 
 procedure e_Buffer_Write(B: pTBuffer; V: TMD5Digest); overload;
+
+procedure e_Buffer_Write(B: pTBuffer; V: pTBuffer); overload;
 
 
 function  e_Buffer_Read_Char(B: pTBuffer): Char;
@@ -100,15 +102,15 @@ procedure e_Buffer_Clear(B: pTBuffer);
 begin
   B^.WritePos := 0;
   B^.ReadPos := 0;
-  B^.Len := 0;
+  B^.Cap := 0;
 end;
 
 
 procedure e_Buffer_Write_Generic(B: pTBuffer; var V; N: Cardinal);
 begin
   if (B^.WritePos + N >= BUF_SIZE) then Exit;
-  if (B^.WritePos + N > B^.Len) then
-    B^.Len := B^.WritePos + N + 1;
+  if (B^.WritePos + N > B^.Cap) then
+    B^.Cap := B^.WritePos + N + 1;
 
   CopyMemory(Pointer(NativeUInt(Addr(B^.Data)) + B^.WritePos),
              @V, N);
@@ -177,7 +179,7 @@ begin
     P := BUF_SIZE;
   end;
 
-  if (P > B^.Len) then B^.Len := P;
+  if (P > B^.Cap) then B^.Cap := P;
 
   CopyMemory(Pointer(NativeUInt(Addr(B^.Data)) + B^.WritePos),
              @V[1], Len);
@@ -191,6 +193,25 @@ var
 begin
   for I := 0 to 15 do
     e_Buffer_Write(B, V[I]);
+end;
+
+procedure e_Buffer_Write(B: pTBuffer; V: pTBuffer); overload;
+var
+  N: Cardinal;
+begin
+  if V = nil then Exit;
+  N := V^.WritePos;
+
+  e_Buffer_Write(B, Word(N));
+
+  if (B^.WritePos + N >= BUF_SIZE) then Exit;
+  if (B^.WritePos + N > B^.Cap) then
+    B^.Cap := B^.WritePos + N + 1;
+
+  CopyMemory(Pointer(NativeUInt(Addr(B^.Data)) + B^.WritePos),
+             Addr(V^.Data), N);
+
+  B^.WritePos := B^.WritePos + N;
 end;
 
 
@@ -237,8 +258,8 @@ begin
   Result := '';
   if Len = 0 then Exit;
 
-  if B^.ReadPos + Len > B^.Len then
-    Len := B^.Len - B^.ReadPos;
+  if B^.ReadPos + Len > B^.Cap then
+    Len := B^.Cap - B^.ReadPos;
 
   SetLength(Result, Len);
   CopyMemory(@Result[1], Pointer(NativeUInt(Addr(B^.Data)) + B^.ReadPos), Len);

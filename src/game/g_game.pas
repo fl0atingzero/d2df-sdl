@@ -3639,6 +3639,7 @@ var
   State: Byte;
   OuterLoop: Boolean;
   newResPath: string;
+  Len: Word;
 begin
   g_Game_Free();
 
@@ -3688,6 +3689,7 @@ begin
         Ptr := NetEvent.packet^.data;
         e_Raw_Seek(0);
 
+        Len := e_Raw_Read_Word(Ptr);
         MID := e_Raw_Read_Byte(Ptr);
 
         if (MID = NET_MSG_INFO) and (State = 0) then
@@ -3794,7 +3796,7 @@ begin
 
   g_Player_Init();
   NetState := NET_STATE_GAME;
-  MC_SEND_FullStateRequest;
+  MC_SEND_FullStateRequest();
   e_WriteLog('NET: Connection successful.', MSG_NOTIFY);
 end;
 
