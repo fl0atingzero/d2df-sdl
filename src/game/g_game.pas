@@ -3689,77 +3689,82 @@ begin
         Ptr := NetEvent.packet^.data;
         e_Raw_Seek(0);
 
-        Len := e_Raw_Read_Word(Ptr);
-        MID := e_Raw_Read_Byte(Ptr);
-
-        if (MID = NET_MSG_INFO) and (State = 0) then
+        while (State = 0) and (RawPos < NetEvent.packet^.dataLength) do
         begin
-          NetMyID := e_Raw_Read_Byte(Ptr);
-          NetPlrUID1 := e_Raw_Read_Word(Ptr);
+          Len := e_Raw_Read_Word(Ptr);
+          MID := e_Raw_Read_Byte(Ptr);
+          e_WriteLog(Format('conn recv %U %U', [Len, MID]), MSG_NOTIFY);
 
-          WadName := e_Raw_Read_String(Ptr);
-          Map := e_Raw_Read_String(Ptr);
-
-          gWADHash := e_Raw_Read_MD5(Ptr);
-
-          gGameSettings.GameMode := e_Raw_Read_Byte(Ptr);
-          gSwitchGameMode := gGameSettings.GameMode;
-          gGameSettings.GoalLimit := e_Raw_Read_Word(Ptr);
-          gGameSettings.TimeLimit := e_Raw_Read_Word(Ptr);
-          gGameSettings.MaxLives := e_Raw_Read_Byte(Ptr);
-          gGameSettings.Options := e_Raw_Read_LongWord(Ptr);
-          T := e_Raw_Read_LongWord(Ptr);
-
-          newResPath := g_Res_SearchSameWAD(MapsDir, WadName, gWADHash);
-          if newResPath = '' then
+          if (MID = NET_MSG_INFO) and (State = 0) then
           begin
-            g_Game_SetLoadingText(_lc[I_LOAD_DL_RES], 0, False);
-            newResPath := g_Res_DownloadWAD(WadName);
+            NetMyID := e_Raw_Read_Byte(Ptr);
+            NetPlrUID1 := e_Raw_Read_Word(Ptr);
+
+            WadName := e_Raw_Read_String(Ptr);
+            Map := e_Raw_Read_String(Ptr);
+
+            gWADHash := e_Raw_Read_MD5(Ptr);
+
+            gGameSettings.GameMode := e_Raw_Read_Byte(Ptr);
+            gSwitchGameMode := gGameSettings.GameMode;
+            gGameSettings.GoalLimit := e_Raw_Read_Word(Ptr);
+            gGameSettings.TimeLimit := e_Raw_Read_Word(Ptr);
+            gGameSettings.MaxLives := e_Raw_Read_Byte(Ptr);
+            gGameSettings.Options := e_Raw_Read_LongWord(Ptr);
+            T := e_Raw_Read_LongWord(Ptr);
+
+            newResPath := g_Res_SearchSameWAD(MapsDir, WadName, gWADHash);
             if newResPath = '' then
             begin
-              g_FatalError(_lc[I_NET_ERR_HASH]);
+              g_Game_SetLoadingText(_lc[I_LOAD_DL_RES], 0, False);
+              newResPath := g_Res_DownloadWAD(WadName);
+              if newResPath = '' then
+              begin
+                g_FatalError(_lc[I_NET_ERR_HASH]);
+                enet_packet_destroy(NetEvent.packet);
+                NetState := NET_STATE_NONE;
+                Exit;
+              end;
+            end;
+            newResPath := ExtractRelativePath(MapsDir, newResPath);
+
+            gPlayer1 := g_Player_Get(g_Player_Create(gPlayer1Settings.Model,
+                                                     gPlayer1Settings.Color,
+                                                     gPlayer1Settings.Team, False));
+
+            if gPlayer1 = nil then
+            begin
+              g_FatalError(Format(_lc[I_GAME_ERROR_PLAYER_CREATE], [1]));
+
               enet_packet_destroy(NetEvent.packet);
               NetState := NET_STATE_NONE;
               Exit;
             end;
-          end;
-          newResPath := ExtractRelativePath(MapsDir, newResPath);
 
-          gPlayer1 := g_Player_Get(g_Player_Create(gPlayer1Settings.Model,
-                                                   gPlayer1Settings.Color,
-                                                   gPlayer1Settings.Team, False));
+            gPlayer1.Name := gPlayer1Settings.Name;
+            gPlayer1.UID := NetPlrUID1;
+            gPlayer1.Reset(True);
 
-          if gPlayer1 = nil then
-          begin
-            g_FatalError(Format(_lc[I_GAME_ERROR_PLAYER_CREATE], [1]));
+            if not g_Game_StartMap(newResPath + ':\' + Map, True) then
+            begin
+              g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD], [WadName + ':\' + Map]));
 
+              enet_packet_destroy(NetEvent.packet);
+              NetState := NET_STATE_NONE;
+              Exit;
+            end;
+
+            gTime := T;
+
+            State := 1;
+            OuterLoop := False;
             enet_packet_destroy(NetEvent.packet);
-            NetState := NET_STATE_NONE;
-            Exit;
-          end;
-
-          gPlayer1.Name := gPlayer1Settings.Name;
-          gPlayer1.UID := NetPlrUID1;
-          gPlayer1.Reset(True);
-
-          if not g_Game_StartMap(newResPath + ':\' + Map, True) then
-          begin
-            g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD], [WadName + ':\' + Map]));
-
-            enet_packet_destroy(NetEvent.packet);
-            NetState := NET_STATE_NONE;
-            Exit;
-          end;
-
-          gTime := T;
-
-          State := 1;
-          OuterLoop := False;
-          enet_packet_destroy(NetEvent.packet);
-          break;
-        end
-        else
-          enet_packet_destroy(NetEvent.packet);
+            break;
+          end
+          else
+            RawPos := RawPos + Len-1;
+        end;
+        if State = 1 then break;
       end
       else
         if (NetEvent.kind = ENET_EVENT_TYPE_DISCONNECT) then

@@ -108,10 +108,14 @@ begin
       NET_MSG_GEVENT: MC_RECV_GameEvent(B);
       NET_MSG_GSET:   MC_RECV_GameSettings(B);
 
-      NET_MSG_PLR:    if NetState <> NET_STATE_AUTH then MC_RECV_PlayerCreate(B);
-      NET_MSG_PLRDEL: if NetState <> NET_STATE_AUTH then MC_RECV_PlayerDelete(B);
+      NET_MSG_PLR:
+        if NetState <> NET_STATE_AUTH then MC_RECV_PlayerCreate(B)
+        else RawPos := RawPos + Len-1;
+      NET_MSG_PLRDEL: 
+        if NetState <> NET_STATE_AUTH then MC_RECV_PlayerDelete(B)
+        else RawPos := RawPos + Len-1;
 
-      else RawPos := RawPos + Len;
+      else RawPos := RawPos + Len-1;
     end;
   end;
 
