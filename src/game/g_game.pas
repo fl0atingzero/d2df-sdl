@@ -3692,8 +3692,11 @@ begin
         while (State = 0) and (RawPos < NetEvent.packet^.dataLength) do
         begin
           Len := e_Raw_Read_Word(Ptr);
+          if Len = 0 then break;
+
           MID := e_Raw_Read_Byte(Ptr);
-          e_WriteLog(Format('conn recv %U %U', [Len, MID]), MSG_NOTIFY);
+          if NetDump then
+            g_Net_DumpRecvBuffer(NetEvent.packet^.data, NetEvent.packet^.dataLength);
 
           if (MID = NET_MSG_INFO) and (State = 0) then
           begin
@@ -3717,7 +3720,7 @@ begin
             if newResPath = '' then
             begin
               g_Game_SetLoadingText(_lc[I_LOAD_DL_RES], 0, False);
-              newResPath := g_Res_DownloadWAD(WadName);
+              newResPath := ''; //g_Res_DownloadWAD(WadName);
               if newResPath = '' then
               begin
                 g_FatalError(_lc[I_NET_ERR_HASH]);

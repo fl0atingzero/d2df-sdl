@@ -187,7 +187,7 @@ procedure g_Net_UnbanNonPermHosts();
 procedure g_Net_SaveBanList();
 
 procedure g_Net_DumpStart();
-procedure g_Net_DumpSendBuffer();
+procedure g_Net_DumpSendBuffer(Buf: pTBuffer);
 procedure g_Net_DumpRecvBuffer(Buf: penet_uint8; Len: LongWord);
 procedure g_Net_DumpEnd();
 
@@ -219,6 +219,7 @@ begin
       else
         enet_peer_send(Peer, Ch, P);
     end;
+    if NetDump then g_Net_DumpSendBuffer(B);
     e_Buffer_Clear(B);
   end;
 end;
@@ -617,6 +618,8 @@ begin
         ID := Byte(NetEvent.peer^.data^);
         if ID > High(NetClients) then Exit;
         TC := @NetClients[ID];
+        if NetDump then
+          g_Net_DumpRecvBuffer(NetEvent.packet^.data, NetEvent.packet^.dataLength);
         g_Net_HostMsgHandler(TC, NetEvent.packet);
       end;
 
@@ -733,6 +736,8 @@ begin
     case NetEvent.kind of
       ENET_EVENT_TYPE_RECEIVE:
       begin
+        if NetDump then
+          g_Net_DumpRecvBuffer(NetEvent.packet^.data, NetEvent.packet^.dataLength);
         g_Net_ClientMsgHandler(NetEvent.packet);
       end;
 
@@ -754,6 +759,8 @@ begin
     case NetEvent.kind of
       ENET_EVENT_TYPE_RECEIVE:
       begin
+        if NetDump then
+          g_Net_DumpRecvBuffer(NetEvent.packet^.data, NetEvent.packet^.dataLength);
         g_Net_ClientLightMsgHandler(NetEvent.packet);
       end;
 
@@ -965,6 +972,7 @@ var
   OuterLoop: Boolean;
   MID: Byte;
   Ptr: Pointer;
+  Len: LongWord;
   msgStream: TMemoryStream;
 begin
   FillChar(downloadEvent, SizeOf(downloadEvent), 0);
@@ -976,6 +984,8 @@ begin
     begin
       if (downloadEvent.kind = ENET_EVENT_TYPE_RECEIVE) and (downloadEvent.packet^.dataLength > 2) then
       begin
+        Len := PWord(downloadEvent.packet^.data)^;
+        if Len = 0 then break;
         Ptr := downloadEvent.packet^.data + 2; // skip length
         MID := Byte(Ptr^);
 
@@ -1131,20 +1141,28 @@ begin
     NetDumpFile := createDiskFile(NETDUMP_FILENAME + '_client');
 end;
 
-procedure g_Net_DumpSendBuffer();
+procedure g_Net_DumpSendBuffer(Buf: pTBuffer);
 begin
+  writeInt(NetDumpFile, Byte($BA));
+  writeInt(NetDumpFile, Byte($BE));
+  writeInt(NetDumpFile, Byte($FF));
   writeInt(NetDumpFile, gTime);
-  writeInt(NetDumpFile, LongWord(NetOut.WritePos));
-  writeInt(NetDumpFile, Byte(1));
-  NetDumpFile.WriteBuffer(NetOut.Data[0], NetOut.WritePos);
+  writeInt(NetDumpFile, Byte($FF));
+  writeInt(NetDumpFile, LongWord(Buf^.WritePos));
+  writeInt(NetDumpFile, Byte($FF));
+  NetDumpFile.WriteBuffer(Buf^.Data[0], Buf^.WritePos);
 end;
 
 procedure g_Net_DumpRecvBuffer(Buf: penet_uint8; Len: LongWord);
 begin
   if (Buf = nil) or (Len = 0) then Exit;
+  writeInt(NetDumpFile, Byte($B0));
+  writeInt(NetDumpFile, Byte($0B));
+  writeInt(NetDumpFile, Byte($FF));
   writeInt(NetDumpFile, gTime);
+  writeInt(NetDumpFile, Byte($FF));
   writeInt(NetDumpFile, Len);
-  writeInt(NetDumpFile, Byte(0));
+  writeInt(NetDumpFile, Byte($FF));
   NetDumpFile.WriteBuffer(Buf^, Len);
 end;
 

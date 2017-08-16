@@ -201,6 +201,8 @@ var
 begin
   if V = nil then Exit;
   N := V^.WritePos;
+  Assert(N <> 0, 'don''t write empty buffers you fuck');
+  if N = 0 then Exit;
 
   e_Buffer_Write(B, Word(N));
 

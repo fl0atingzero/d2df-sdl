@@ -42,6 +42,8 @@ begin
   while RawPos < P^.dataLength do
   begin
     Len := e_Raw_Read_Word(B);
+    if Len = 0 then break;
+
     MID := e_Raw_Read_Byte(B);
     case MID of
       NET_MSG_CHAT:   MC_RECV_Chat(B);
@@ -103,6 +105,8 @@ begin
   while RawPos < P^.dataLength do
   begin
     Len := e_Raw_Read_Word(B);
+    if Len = 0 then break;
+
     MID := e_Raw_Read_Byte(B);
     case MID of
       NET_MSG_GEVENT: MC_RECV_GameEvent(B);
@@ -136,6 +140,8 @@ begin
   while RawPos < P^.dataLength do
   begin
     Len := e_Raw_Read_Word(B);
+    if Len = 0 then break;
+
     MID := e_Raw_Read_Byte(B);
     case MID of
       NET_MSG_INFO: MH_RECV_Info(S, B);
