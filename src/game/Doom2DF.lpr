@@ -48,11 +48,22 @@ uses
 {$IFDEF USE_MINIUPNPC}
   miniupnpc in '../lib/miniupnpc/miniupnpc.pas',
 {$ENDIF}
+{$IFDEF USE_SDL2WRAP}
+  SDL2 in '../wrappers/sdl2/sdl2.pas',
+  {$IFDEF USE_SDLMIXER}
+    SDL2_mixer in '../wrappers/sdl2/SDL2_mixer.pas',
+  {$ENDIF}
+{$ELSE}
   SDL2 in '../lib/sdl2/sdl2.pas',
-{$IFDEF USE_SDLMIXER}
-  SDL2_mixer in '../lib/sdl2/SDL2_mixer.pas',
+  {$IFDEF USE_SDLMIXER}
+    SDL2_mixer in '../lib/sdl2/SDL2_mixer.pas',
+  {$ENDIF}
 {$ENDIF}
+{$IFDEF USE_ENETWRAP}
+  ENet in '../wrappers/enet/enet.pas',
+{$ELSE}
   ENet in '../lib/enet/enet.pp',
+{$ENDIF}
   e_graphics in '../engine/e_graphics.pas',
   e_input in '../engine/e_input.pas',
   e_log in '../engine/e_log.pas',

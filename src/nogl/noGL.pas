@@ -170,6 +170,12 @@ interface
   procedure nogl_Init;
   procedure nogl_Quit;
 
-{$I noGLES1.inc}
+{$IFDEF USE_GLES1}}
+  {$I noGLES1.inc}
+{$ELSE}
+  {$IFDEF USE_GLSTUB}
+    {$I noGLSTUB.inc}
+  {$ENDIF}
+{$ENDIF}
 
 end.
