@@ -33,7 +33,10 @@
 {$COPERATORS ON}
 {$EXTENDEDSYNTAX ON}
 {$IFDEF CPU386}
-  {$FPUTYPE SSE}
+  {$IFDEF GO32V2}
+  {$ELSE}
+    {$FPUTYPE SSE}
+  {$ENDIF}
 {$ENDIF}
 {$GOTO ON}
 {$IEEEERRORS OFF}
@@ -52,7 +55,10 @@
 {$VARSTRINGCHECKS OFF}
 
 {$S-} // disable stack checking
-{$MMX-} // get lost, mmx
+{$IFDEF GO32V2}
+{$ELSE}
+  {$MMX-} // get lost, mmx
+{$ENDIF}
 
 {$IF DEFINED(D2F_DEBUG)}
   {$STACKFRAMES ON}

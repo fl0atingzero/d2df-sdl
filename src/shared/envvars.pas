@@ -42,10 +42,17 @@ begin
     Result := -1;
 end;
 {$ELSE}
-{$LINKLIB c}
-const clib = 'c';
-function setenv(const VarStr: PChar; const VarVal: PChar; Repl: cint): cint;
-cdecl; external clib name 'setenv';
+  {$IFDEF GO32V2}
+    function setenv(const VarStr: PChar; const VarVal: PChar; Repl: cint): cint;
+    begin
+      {$WARNING setenv stub!}
+      result := 0
+    end;
+  {$ELSE}
+    {$LINKLIB c}
+    const clib = 'c';
+    function setenv(const VarStr: PChar; const VarVal: PChar; Repl: cint): cint; cdecl; external clib name 'setenv';
+  {$ENDIF}
 {$ENDIF}
 
 function SetEnvVar(const VarName: AnsiString; const VarVal: AnsiString): Boolean;

@@ -354,7 +354,11 @@ uses
 {$IF Defined(MSWINDOWS)}
   Windows;
 {$ELSEIF Defined(FPC)}
-  Dos, BaseUnix, Unix;
+  Dos
+  {$IFDEF Unix}
+    , BaseUnix, Unix
+  {$ENDIF}
+  ;
 {$ELSEIF Defined(DELPHI)}
   Posix.SysTime;
 {$IFEND}
@@ -413,7 +417,7 @@ begin
   Posix.SysTime.GetTimeOfDay(Time, nil);
   Result := Int64(Time.tv_sec) * 1000000 + Time.tv_usec;
 end;
-{$ELSEIF Defined(FPC)}
+{$ELSEIF Defined(FPC) and Defined(UNIX)}
 function GetTimeMicroseconds: Int64;
 var
   TimeVal: TTimeVal;
@@ -421,6 +425,12 @@ begin
   fpGetTimeOfDay(@TimeVal, nil);
   Result := Int64(TimeVal.tv_sec) * 1000000 + TimeVal.tv_usec;
 end;
+{$ELSE}
+  function GetTimeMicroseconds: Int64;
+  begin
+    {$WARNING GetTimeMicroseconds stub!}
+    result := 0
+  end;
 {$IFEND}
 
 function GetTimeMilliseconds: Int64;
