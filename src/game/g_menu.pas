@@ -951,9 +951,11 @@ begin
     g_Texture_CreateWADEx('FONT_STD', GameWAD+':FONTS\'+texture);
 
     config := TConfig.CreateMem(cfgdata, cfglen);
-    cwdt := Min(Max(config.ReadInt('FontMap', 'CharWidth', 0), 0), 255);
-    chgt := Min(Max(config.ReadInt('FontMap', 'CharHeight', 0), 0), 255);
+    cwdt := Min(Max(config.ReadInt('FontMap', 'CharWidth', 1), 1), 255);
+    chgt := Min(Max(config.ReadInt('FontMap', 'CharHeight', 1), 1), 255);
     spc := Min(Max(config.ReadInt('FontMap', 'Kerning', 0), -128), 127);
+
+    e_LogWritefln('LoadStdFont cwdt=%s chgt=%s spc=%s', [cwdt, chgt, spc]);
 
     if g_Texture_Get('FONT_STD', ID) then
       e_TextureFontBuild(ID, FontID, cwdt, chgt, spc);

@@ -170,12 +170,14 @@ interface
   procedure nogl_Init;
   procedure nogl_Quit;
 
-{$IFDEF USE_GLES1}}
+{$IF DEFINED(USE_GLES1)}
   {$I noGLES1.inc}
+{$ELSEIF DEFINED(USE_GLALSW)}
+  {$I noGLALSW.inc}
+{$ELSEIF DEFINED(USE_GLSTUB)}
+  {$I noGLSTUB.inc}
 {$ELSE}
-  {$IFDEF USE_GLSTUB}
-    {$I noGLSTUB.inc}
-  {$ENDIF}
+  {$ERROR use one of gl wrapper: USE_GLES1 USE_GLALSW USE_GLSTUB}}
 {$ENDIF}
 
 end.

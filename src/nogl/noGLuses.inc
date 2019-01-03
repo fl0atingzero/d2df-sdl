@@ -1,27 +1,21 @@
-{$IFDEF USE_NANOGL}
+{$IF DEFINED(USE_NANOGL) OR DEFINED(USE_NOGL)}
   {$DEFINE USE_GLES1}
-{$ELSE}
-  {$IFDEF USE_NOGL}
-    {$DEFINE USE_GLES1}
-  {$ENDIF}
 {$ENDIF}
 
-{$IF DEFINED(USE_GLES1) or DEFINED(USE_GLSTUB)}
+{$IF DEFINED(USE_GLES1) OR DEFINED(USE_GLSTUB) OR DEFINED(USE_GLALSW)}
   {$IFNDEF USE_NANOGL}
     {$DEFINE USE_NOGL}
   {$ENDIF}
 {$ENDIF}
 
 {$IF DEFINED(USE_NANOGL) and DEFINED(USE_NOGL)}
-  {$WARNING you can use only one OpenGL ES wrapper}
+  {$ERROR you can use only one OpenGL ES wrapper}
 {$ENDIF}
 
-{$IFDEF USE_NANOGL}
+{$IF DEFINED(USE_NANOGL)}
   nanoGL in '../lib/nanogl/nanoGL.pas',
+{$ELSEIF DEFINED(USE_NOGL) }
+  noGL in '../nogl/noGL.pas',
 {$ELSE}
-  {$IFDEF USE_NOGL}
-    noGL in '../nogl/noGL.pas',
-  {$ELSE}
-    GL, GLExt,
-  {$ENDIF}
+  GL, GLExt,
 {$ENDIF}

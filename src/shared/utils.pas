@@ -1393,42 +1393,7 @@ function nclamp (v, a, b: Extended): Extended; inline; overload; begin if (v < a
 function snprintf (buf: PAnsiChar; bufsize: SizeUInt; const fmt: PAnsiChar): SizeUInt; cdecl; varargs; external 'msvcrt.dll' name '_snprintf';
 {$ELSE}
   {$IFDEF GO32V2}
-
-function snprintf (buf: PAnsiChar; bufsize: SizeUInt; const fmt: PAnsiChar): SizeUInt;
-begin
-  {$WARNING snprintf not implemented!}
-  buf[0] := #0;
-  result := 0
-end;
-
-function snprintf (buf: PAnsiChar; bufsize: SizeUInt; const fmt: PAnsiChar; x: LongInt): SizeUInt; overload;
-begin
-  {$WARNING snprintf+longint not implemented!}
-  buf[0] := #0;
-  result := 0
-end;
-
-function snprintf (buf: PAnsiChar; bufsize: SizeUInt; const fmt: PAnsiChar; x: PAnsiChar): SizeUInt; overload;
-begin
-  {$WARNING snprintf+string not implemented!}
-  buf[0] := #0;
-  result := 0
-end;
-
-function snprintf (buf: PAnsiChar; bufsize: SizeUInt; const fmt: PAnsiChar; x: Char): SizeUInt; overload;
-begin
-  {$WARNING snprintf+char not implemented!}
-  buf[0] := #0;
-  result := 0
-end;
-
-function snprintf (buf: PAnsiChar; bufsize: SizeUInt; const fmt: PAnsiChar; x: Double): SizeUInt; overload;
-begin
-  {$WARNING snprintf+double not implemented!}
-  buf[0] := #0;
-  result := 0
-end;
-
+function snprintf (buf: PAnsiChar; bufsize: SizeUInt; const fmt: PAnsiChar): SizeUInt; cdecl; varargs; external;
   {$ELSE}
 function snprintf (buf: PAnsiChar; bufsize: SizeUInt; const fmt: PAnsiChar): SizeUInt; cdecl; varargs; external 'libc' name 'snprintf';
   {$ENDIF}

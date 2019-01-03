@@ -48,7 +48,7 @@ uses
 {$IFDEF USE_MINIUPNPC}
   miniupnpc in '../lib/miniupnpc/miniupnpc.pas',
 {$ENDIF}
-{$IFDEF USE_SDL2WRAP}
+{$IF DEFINED(USE_SDL2STUB) OR DEFINED(USE_SDL2ALLEGRO)}
   SDL2 in '../wrappers/sdl2/sdl2.pas',
   {$IFDEF USE_SDLMIXER}
     SDL2_mixer in '../wrappers/sdl2/SDL2_mixer.pas',
