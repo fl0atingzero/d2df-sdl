@@ -47,6 +47,13 @@ interface
     GFX_AUTODETECT_WINDOWED = 2;
     GFX_SAFE = $53414645;
 
+    DRAW_MODE_SOLID = 0;
+    DRAW_MODE_XOR = 1;
+    DRAW_MODE_COPY_PATTERN = 2;
+    DRAW_MODE_SOLID_PATTERN = 3;
+    DRAW_MODE_MASKED_PATTERN = 4;
+    DRAW_MODE_TRANS = 5;
+
     KEY_A = 1;
     KEY_B = 2;
     KEY_C = 3;
@@ -193,6 +200,7 @@ interface
     KB_ACCENT4_FLAG = $8000;
 
     ALLEGRO_ERROR_SIZE = 256;
+    PAL_SIZE = 256;
 
   type
     PBITMAP = ^BITMAP;
@@ -223,14 +231,28 @@ interface
       mode: PGFX_MODE;
     end;
 
+    RGB = record
+      r, g, b, filler: cuchar;
+    end;
+
+    PALETTE = array [0..PAL_SIZE - 1] of RGB;
+    PPALETTE = ^PALETTE;
+
    KeyboardCallback = procedure (scancode: cint); LibraryLibAllegroDecl;   
    AtExitCallback = procedure; LibraryLibAllegroDecl;
    AtExitFunction = function (func: AtExitCallback): cint; LibraryLibAllegroDecl;
+   TimerIntCallback = procedure; LibraryLibAllegroDecl;
 
   var
     allegro_id: array [0..ALLEGRO_ERROR_SIZE] of char; LibraryLibAllegroVar;
     allegro_error: array [0..ALLEGRO_ERROR_SIZE] of char; LibraryLibAllegroVar;
     keyboard_lowlevel_callback: KeyboardCallback; LibraryLibAllegroVar;
+    screen: PBITMAP; LibraryLibAllegroVar;
+
+    black_palette: PALETTE; LibraryLibAllegroVar;
+    desktop_palette: PALETTE; LibraryLibAllegroVar;
+    default_palette: PALETTE; LibraryLibAllegroVar;
+    _current_palette: PALETTE; LibraryLibAllegroVar;
 
   function get_desktop_resolution (width, height: Pcint): cint; LibraryLibAllegroImp;
   function get_gfx_mode_list (card: cint): PGFX_MODE_LIST; LibraryLibAllegroImp;
@@ -255,15 +277,36 @@ interface
   function makecol (r, g, b: cint): cint; LibraryLibAllegroImp;
   procedure clear_to_color (source: PBITMAP; color: cint); LibraryLibAllegroImp;
   procedure putpixel (bmp: PBITMAP; x, y, color: cint); LibraryLibAllegroImp;
+  function getpixel (bmp: PBITMAP; x, y: cint): cint; LibraryLibAllegroImp;
   procedure fastline (bmp: PBITMAP; x1, y_1, x2, y2, color: cint); LibraryLibAllegroImp;
   procedure draw_sprite (bmp, sprite: PBITMAP; x, y: cint); LibraryLibAllegroImp;
+  procedure draw_sprite_v_flip (bmp, sprite: PBITMAP; x, y: cint); LibraryLibAllegroImp;
+  procedure draw_sprite_h_flip (bmp, sprite: PBITMAP; x, y: cint); LibraryLibAllegroImp;
+  procedure draw_sprite_vh_flip (bmp, sprite: PBITMAP; x, y: cint); LibraryLibAllegroImp;
   procedure rect (bmp: PBITMAP; x1, y_1, x2, y2, color: cint); LibraryLibAllegroImp;
   procedure rectfill (bmp: PBITMAP; x1, y_1, x2, y2, color: cint); LibraryLibAllegroImp;
   function create_bitmap (width, height: cint): PBITMAP; LibraryLibAllegroImp;
   function create_system_bitmap (width, height: cint): PBITMAP; LibraryLibAllegroImp;
   procedure allegro_exit; LibraryLibAllegroImp;
 
+  procedure rest (time: cuint); LibraryLibAllegroImp;
+  function install_int_ex (proc: TimerIntCallback; speed: clong): cint; LibraryLibAllegroImp;
+  procedure blit (source, dest: PBITMAP; source_x, source_y, dest_x, dest_y, width, height: cint); LibraryLibAllegroImp;
+  procedure masked_blit (source, dest: PBITMAP; source_x, source_y, dest_x, dest_y, width, height: cint); LibraryLibAllegroImp;
+  procedure set_clip_rect (bitmap: PBITMAP; x1, y1, x2, y2: cint); LibraryLibAllegroImp;
+  procedure get_clip_rect (bitmap: PBITMAP; var x1, y1, x2, y2: cint); LibraryLibAllegroImp;
+
+  procedure set_palette (const p: PALETTE); LibraryLibAllegroImp;
+  procedure set_color_depth (depth: cint); LibraryLibAllegroImp;
+
 //  function _install_allegro (system_id: cint; errno_prt: Pcint; AtExitFunction): cint; LibraryLibAllegroImp;
+
+  (* MACRO *)
+  function TIMERS_PER_SECOND: clong; inline;
+  function SECS_TO_TIMER (x: clong): clong; inline;
+  function MSEC_TO_TIMER (x: clong): clong; inline;
+  function BPS_TO_TIMER (x: clong): clong; inline;
+  function BPM_TO_TIMER (x: clong): clong; inline;
 
 implementation
 
@@ -277,6 +320,33 @@ implementation
     (* original macros sets atexit_ptr *)
     (* original macros sets libc errno? *)
     allegro_init := _install_allegro_version_check(SYSTEM_AUTODETECT, nil, nil, (ALLEGRO_VERSION shl 16) OR (ALEGRO_SUB_VERSION shl 8) OR ALLEGRO_WIP_VERSION)
+  end;
+
+
+
+  function TIMERS_PER_SECOND: clong; inline;
+  begin
+    TIMERS_PER_SECOND := 1193181
+  end;
+
+  function SECS_TO_TIMER (x: clong): clong; inline;
+  begin
+    SECS_TO_TIMER := x * TIMERS_PER_SECOND
+  end;
+
+  function MSEC_TO_TIMER (x: clong): clong; inline;
+  begin
+    MSEC_TO_TIMER := x * TIMERS_PER_SECOND div 1000
+  end;
+
+  function BPS_TO_TIMER (x: clong): clong; inline;
+  begin
+    BPS_TO_TIMER := TIMERS_PER_SECOND div x
+  end;
+
+  function BPM_TO_TIMER (x: clong): clong; inline;
+  begin
+    BPM_TO_TIMER := 60 * TIMERS_PER_SECOND div x
   end;
 
 end.

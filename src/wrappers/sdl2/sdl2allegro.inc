@@ -10,6 +10,9 @@ interface
   {$I sdlscancode.inc}
 
   const
+    DEFAULT_DEPTH = 8;
+
+  const
     SDL_HAT_CENTERED  = $00;
     SDL_HAT_UP        = $01;
     SDL_HAT_RIGHT     = $02;
@@ -362,7 +365,11 @@ interface
 
 implementation
 
-  uses e_Log, SysUtils;
+  uses
+    {$IFDEF GO32V2}
+      go32,
+    {$ENDIF}
+    e_Log, SysUtils, ctypes;
 
   const
     maxKeyBuffer = 64;
@@ -372,6 +379,8 @@ implementation
     myargv: array [0..255] of Pchar;
     keyring: array [0..maxKeyBuffer - 1] of Integer;
     keybeg, keyend: Integer;
+
+    ticks: UInt32; (* !!! VOLATILE !!! *)
 
   function IsEmptyKeyboard: Boolean;
   begin
@@ -395,11 +404,14 @@ implementation
 
   procedure KeyboardWatcher (scancode: Integer); cdecl;
   begin
-    if not IsFullKeyboard then
+    if (keybeg - 1) mod maxKeyBuffer <> keyend then (* not IsFullKeyboard *)
     begin
       keyring[keyend] := scancode;
       keyend := (keyend + 1) mod maxKeyBuffer
     end
+  end;
+  procedure KeyboardWatcherEND;
+  begin
   end;
 
   /// MACRO ///
@@ -534,28 +546,38 @@ implementation
 
 (********** TIMERS **********)
 
+  procedure AllegroTimerCallback; cdecl;
+  begin
+    inc(ticks)
+  end;
+  procedure AllegroTimerCallbackEND;
+  begin
+  end;
+
+
+
   function SDL_GetPerformanceCounter: UInt64;
   begin
-    e_LogWriteln('SDL_GetPerformanceCounter');
-    result := 1
+    //e_LogWriteln('SDL_GetPerformanceCounter');
+    result := ticks;
   end;
 
   function SDL_GetPerformanceFrequency: UInt64;
   begin
-    e_LogWriteln('SDL_GetPerformanceFrequency');
+    //e_LogWriteln('SDL_GetPerformanceFrequency');
     result := 1
   end;
 
   procedure SDL_Delay(ms: UInt32);
   begin
-    e_LogWriteln('SDL_Delay');
-    //allegro_rest(ms)
+    //e_LogWriteln('SDL_Delay');
+    //rest(ms)
   end;
 
   function SDL_GetTicks: UInt32;
   begin
-    e_LogWriteln('SDL_GetTicks');
-    result := 1
+    //e_LogWriteln('SDL_GetTicks');
+    result := ticks;
   end;
 
 (********** DISPLAY MODES **********)
@@ -621,24 +643,33 @@ implementation
     e_LogWritefln('SDL_CreateWindow %s %s %s %s %s %u', [title, x, y, w, h, flags]);
     result := nil;
 
+{$IF DEFINED(AL_TEXT)}
+    mode := GFX_TEXT;
+    w := 0; h := 0;
+{$ELSEIF DEFINED(GO32V2)}
+    mode := GFX_AUTODETECT;
+{$ELSE}
     if (flags and (SDL_WINDOW_FULLSCREEN or SDL_WINDOW_FULLSCREEN_DESKTOP)) <> 0 then
       mode := GFX_AUTODETECT_FULLSCREEN
     else
       mode := GFX_AUTODETECT_WINDOWED;
-    mode := GFX_SAFE;
+{$ENDIF}
 
+    set_color_depth(DEFAULT_DEPTH);
     if set_gfx_mode(mode, w, h, 0, 0) = 0 then
     begin
       new(window);
+{$IF NOT DEFINED(AL_TEXT)}
       set_window_title(title);
       if sdl2allegro_screen <> nil then
         destroy_bitmap(sdl2allegro_screen);
-      sdl2allegro_screen := create_video_bitmap(w, h);
-      if sdl2allegro_screen = nil then
+      //sdl2allegro_screen := create_video_bitmap(w, h);
+      //if sdl2allegro_screen = nil then
         sdl2allegro_screen := create_system_bitmap(w, h);
       if sdl2allegro_screen = nil then
         sdl2allegro_screen := create_bitmap(w, h);
-      assert(sdl2allegro_screen <> nil);
+      ASSERT(sdl2allegro_screen <> nil);
+{$ENDIF}
       window.w := w;
       window.h := h;
       window.mode := mode;
@@ -653,24 +684,34 @@ implementation
     result := -1;
     if window = nil then exit;
 
+{$IF DEFINED(AL_TEXT)}
+    mode := GFX_TEXT;
+    window.w := 0; window.h := 0;
+{$ELSEIF DEFINED(GO32V2)}
+    mode := GFX_AUTODETECT;
+{$ELSE}
     if (flags and (SDL_WINDOW_FULLSCREEN or SDL_WINDOW_FULLSCREEN_DESKTOP)) <> 0 then
       mode := GFX_AUTODETECT_FULLSCREEN
     else
       mode := GFX_AUTODETECT_WINDOWED;
-    mode := GFX_SAFE;
+{$ENDIF}
 
+    set_color_depth(DEFAULT_DEPTH);
     if set_gfx_mode(mode, window.w, window.h, 0, 0) = 0 then
     begin
+{$IF NOT DEFINED(AL_TEXT)}
 (* 
      if sdl2allegro_screen <> nil then
         destroy_bitmap(sdl2allegro_screen);
 *)
-      sdl2allegro_screen := create_video_bitmap(window.w, window.h);
-      if sdl2allegro_screen = nil then
+      //sdl2allegro_screen := create_video_bitmap(window.w, window.h);
+      //if sdl2allegro_screen = nil then
         sdl2allegro_screen := create_system_bitmap(window.w, window.h);
       if sdl2allegro_screen = nil then
         sdl2allegro_screen := create_bitmap(window.w, window.h);
-      assert(sdl2allegro_screen <> nil);
+      ASSERT(sdl2allegro_screen <> nil);
+      set_palette(desktop_palette);
+{$ENDIF}
       window.mode := mode;
       result := 0
     end
@@ -680,16 +721,24 @@ implementation
   begin
     e_LogWritefln('SDL_SetWindowSize %s %s', [w, h]);
     if window = nil then exit;
+{$IF DEFINED(AL_TEXT)}
+  window.mode := GFX_TEXT;
+  w := 0; h := 0;
+{$ENDIF}
+    set_color_depth(DEFAULT_DEPTH);
     if set_gfx_mode(window.mode, w, h, 0, 0) = 0 then
     begin
+{$IF NOT DEFINED(AL_TEXT)}
       if sdl2allegro_screen <> nil then
         destroy_bitmap(sdl2allegro_screen);
-      if sdl2allegro_screen = nil then
+      //sdl2allegro_screen := create_video_bitmap(w, h);
+      //if sdl2allegro_screen = nil then
         sdl2allegro_screen := create_system_bitmap(w, h);
       if sdl2allegro_screen = nil then
         sdl2allegro_screen := create_bitmap(w, h);
-      sdl2allegro_screen := create_video_bitmap(w, h);
-      assert(sdl2allegro_screen <> nil);
+      ASSERT(sdl2allegro_screen <> nil);
+      set_palette(desktop_palette);
+{$ENDIF}
       window.w := w;
       window.h := h;
     end
@@ -752,10 +801,15 @@ implementation
   end;
 
   procedure SDL_GL_SwapWindow(window: PSDL_Window);
+    var res: cint;
   begin
-    e_LogWriteln('SDL_GL_SwapWindow');
-    assert(sdl2allegro_screen <> nil);
-    show_video_bitmap(sdl2allegro_screen);
+    //e_LogWriteln('SDL_GL_SwapWindow');
+{$IF NOT DEFINED(AL_TEXT)}
+    ASSERT(sdl2allegro_screen <> nil);
+    blit(sdl2allegro_screen, screen, 0, 0, 0, 0, sdl2allegro_screen.w, sdl2allegro_screen.h);
+    res := show_video_bitmap(screen);
+    //ASSERT(res = 0);
+{$ENDIF}
   end;
 
   function SDL_GL_CreateContext(window: PSDL_Window): TSDL_GLContext;
@@ -874,7 +928,7 @@ implementation
   function SDL_PollEvent(event: PSDL_Event): SInt32;
     var alscan: Integer;
   begin
-    e_LogWriteln('SDL_PollEvent');
+    //e_LogWriteln('SDL_PollEvent');
     poll_keyboard;
     result := 0;
     if not IsEmptyKeyboard then
@@ -883,7 +937,7 @@ implementation
       if alscan and $80 = 0 then
         event.type_ := SDL_KEYDOWN
       else
-        event.type_ := SDL_KEYDOWN;
+        event.type_ := SDL_KEYUP;
       event.key.timestamp := 0;
       event.key.windowID := 0;
       (* df not use it?
@@ -921,21 +975,8 @@ implementation
     result := allegro_error;
   end;
 
-  function TestGet: AnsiString;
-  begin
-    result := '+++ Test concat qwertyiop!'
-  end;
-
-  procedure Test;
-  begin
-    // WTF? when 'Test concat qwertyio! ' it not messed!
-    //e_LogWriteln('Test concat qwertyiop! ' + ParamStr(0));
-    e_LogWriteln('Test concat qwertyiop! ' + TestGet);
-  end;
-
   function SDL_Init(flags: UInt32): SInt32;
   begin
-    Test;
     e_LogWritefln('SDL_Init %u', [flags]);
     result := -1;
     __crt0_argv := @myargv[0];
@@ -943,11 +984,21 @@ implementation
     e_LogWritefln('argv[0] = %s', [myargv[0]]);
     if allegro_init = 0 then
     begin
-      e_LogWriteln('SDL_Init inited! ' + ParamStr(0) + ' ');
+      e_LogWriteln('SDL_Init inited! ' + ParamStr(0) + ' tickssize=' + IntToStr(sizeof(keyring)) );
+      {$IFDEF GO32V2}
+        (* without this df dies with fire when swapped *)
+        lock_data(ticks, sizeof(ticks));
+        lock_code(@AllegroTimerCallback, PtrUInt(@AllegroTimerCallbackEND) - PtrUInt(@AllegroTimerCallback));
+        lock_data(keybeg, sizeof(keybeg));
+        lock_data(keyend, sizeof(keyend));
+        lock_data(keyring, sizeof(keyring));
+        lock_code(@KeyboardWatcher, PtrUInt(@KeyboardWatcherEND) - PtrUInt(@KeyboardWatcher));
+      {$ENDIF}
       install_timer;
       install_keyboard;
       keyboard_lowlevel_callback := KeyboardWatcher;
       set_keyboard_rate(0, 0);
+      install_int_ex(AllegroTimerCallback, MSEC_TO_TIMER(1));
       result := 0
     end
   end;
@@ -957,5 +1008,14 @@ implementation
     e_LogWriteln('SDL_Quit');
     remove_keyboard;
     remove_timer;
+    {$IFDEF GO32V2}
+      unlock_data(ticks, sizeof(ticks));
+      unlock_code(@AllegroTimerCallback, PtrUInt(@AllegroTimerCallbackEND) - PtrUInt(@AllegroTimerCallback));
+      unlock_data(keybeg, sizeof(keybeg));
+      unlock_data(keyend, sizeof(keyend));
+      unlock_data(keyring, sizeof(keyring));
+      unlock_code(@KeyboardWatcher, PtrUInt(@KeyboardWatcherEND) - PtrUInt(@KeyboardWatcher));
+    {$ENDIF}
     allegro_exit
   end;
+
