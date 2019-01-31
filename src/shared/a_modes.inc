@@ -32,8 +32,16 @@
 {$BOOLEVAL OFF}
 {$COPERATORS ON}
 {$EXTENDEDSYNTAX ON}
-{$IF DEFINED(CPU386) AND NOT DEFINED(GO32V2)}
-  {$FPUTYPE SSE}
+{$IF DEFINED(CPU386)}
+  {$IFDEF USE_X87}
+    {$FPUTYPE x87}
+    {$MMX-}
+  {$ELSE}
+    {$FPUTYPE SSE}
+    {$MMX-}
+  {$ENDIF}
+{$ELSE}
+  {$MMX-} // get lost, mmx
 {$ENDIF}
 {$GOTO ON}
 {$IEEEERRORS OFF}
@@ -52,9 +60,6 @@
 {$VARSTRINGCHECKS OFF}
 
 {$S-} // disable stack checking
-{$IF NOT DEFINED(GO32V2)}
-  {$MMX-} // get lost, mmx
-{$ENDIF}
 
 {$IF DEFINED(D2F_DEBUG)}
   {$STACKFRAMES ON}

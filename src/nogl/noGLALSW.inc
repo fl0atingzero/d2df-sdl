@@ -60,7 +60,7 @@ implementation
   begin
     assert(i >= 0);
     assert(i <= High(tex));
-    assert(tex[i].used);
+    //assert(tex[i].used); (* free unallocated texture *)
     tex[i].used := false;
     if tex[i].bmp <> nil then
       destroy_bitmap(tex[i].bmp);

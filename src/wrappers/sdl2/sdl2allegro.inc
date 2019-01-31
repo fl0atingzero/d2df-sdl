@@ -83,10 +83,10 @@ interface
       1: (mem: TMem);
       2: (unknown: TUnknown);
       {$IFDEF ANDROID}
-      3: (androidio: TAndroidIO);
+      //3: (androidio: TAndroidIO);
       {$ENDIF}
       {$IFDEF WINDOWS}
-      3: (windowsio: TWindowsIO);
+      //3: (windowsio: TWindowsIO);
       {$ENDIF}
     end;
 
@@ -375,12 +375,10 @@ implementation
     maxKeyBuffer = 64;
 
   var
-    __crt0_argv: PPchar; cvar; external;
-    myargv: array [0..255] of Pchar;
     keyring: array [0..maxKeyBuffer - 1] of Integer;
     keybeg, keyend: Integer;
-
-    ticks: UInt32; (* !!! VOLATILE !!! *)
+    ticks: UInt32;
+    quit: Boolean;
 
   function IsEmptyKeyboard: Boolean;
   begin
@@ -410,9 +408,7 @@ implementation
       keyend := (keyend + 1) mod maxKeyBuffer
     end
   end;
-  procedure KeyboardWatcherEND;
-  begin
-  end;
+  procedure KeyboardWatcherEND; begin end;
 
   /// MACRO ///
 
@@ -550,28 +546,26 @@ implementation
   begin
     inc(ticks)
   end;
-  procedure AllegroTimerCallbackEND;
-  begin
-  end;
-
-
+  procedure AllegroTimerCallbackEND; begin end;
 
   function SDL_GetPerformanceCounter: UInt64;
   begin
     //e_LogWriteln('SDL_GetPerformanceCounter');
+    (* TODO *)
     result := ticks;
   end;
 
   function SDL_GetPerformanceFrequency: UInt64;
   begin
     //e_LogWriteln('SDL_GetPerformanceFrequency');
+    (* TODO *)
     result := 1
   end;
 
   procedure SDL_Delay(ms: UInt32);
   begin
     //e_LogWriteln('SDL_Delay');
-    //rest(ms)
+    rest(ms)
   end;
 
   function SDL_GetTicks: UInt32;
@@ -643,10 +637,7 @@ implementation
     e_LogWritefln('SDL_CreateWindow %s %s %s %s %s %u', [title, x, y, w, h, flags]);
     result := nil;
 
-{$IF DEFINED(AL_TEXT)}
-    mode := GFX_TEXT;
-    w := 0; h := 0;
-{$ELSEIF DEFINED(GO32V2)}
+{$IF DEFINED(GO32V2)}
     mode := GFX_AUTODETECT;
 {$ELSE}
     if (flags and (SDL_WINDOW_FULLSCREEN or SDL_WINDOW_FULLSCREEN_DESKTOP)) <> 0 then
@@ -659,17 +650,13 @@ implementation
     if set_gfx_mode(mode, w, h, 0, 0) = 0 then
     begin
       new(window);
-{$IF NOT DEFINED(AL_TEXT)}
       set_window_title(title);
       if sdl2allegro_screen <> nil then
         destroy_bitmap(sdl2allegro_screen);
-      //sdl2allegro_screen := create_video_bitmap(w, h);
-      //if sdl2allegro_screen = nil then
-        sdl2allegro_screen := create_system_bitmap(w, h);
+      sdl2allegro_screen := create_system_bitmap(w, h);
       if sdl2allegro_screen = nil then
         sdl2allegro_screen := create_bitmap(w, h);
       ASSERT(sdl2allegro_screen <> nil);
-{$ENDIF}
       window.w := w;
       window.h := h;
       window.mode := mode;
@@ -684,10 +671,7 @@ implementation
     result := -1;
     if window = nil then exit;
 
-{$IF DEFINED(AL_TEXT)}
-    mode := GFX_TEXT;
-    window.w := 0; window.h := 0;
-{$ELSEIF DEFINED(GO32V2)}
+{$IF DEFINED(GO32V2)}
     mode := GFX_AUTODETECT;
 {$ELSE}
     if (flags and (SDL_WINDOW_FULLSCREEN or SDL_WINDOW_FULLSCREEN_DESKTOP)) <> 0 then
@@ -699,19 +683,13 @@ implementation
     set_color_depth(DEFAULT_DEPTH);
     if set_gfx_mode(mode, window.w, window.h, 0, 0) = 0 then
     begin
-{$IF NOT DEFINED(AL_TEXT)}
-(* 
      if sdl2allegro_screen <> nil then
         destroy_bitmap(sdl2allegro_screen);
-*)
-      //sdl2allegro_screen := create_video_bitmap(window.w, window.h);
-      //if sdl2allegro_screen = nil then
-        sdl2allegro_screen := create_system_bitmap(window.w, window.h);
+      sdl2allegro_screen := create_system_bitmap(window.w, window.h);
       if sdl2allegro_screen = nil then
         sdl2allegro_screen := create_bitmap(window.w, window.h);
       ASSERT(sdl2allegro_screen <> nil);
       set_palette(desktop_palette);
-{$ENDIF}
       window.mode := mode;
       result := 0
     end
@@ -721,24 +699,16 @@ implementation
   begin
     e_LogWritefln('SDL_SetWindowSize %s %s', [w, h]);
     if window = nil then exit;
-{$IF DEFINED(AL_TEXT)}
-  window.mode := GFX_TEXT;
-  w := 0; h := 0;
-{$ENDIF}
     set_color_depth(DEFAULT_DEPTH);
     if set_gfx_mode(window.mode, w, h, 0, 0) = 0 then
     begin
-{$IF NOT DEFINED(AL_TEXT)}
       if sdl2allegro_screen <> nil then
         destroy_bitmap(sdl2allegro_screen);
-      //sdl2allegro_screen := create_video_bitmap(w, h);
-      //if sdl2allegro_screen = nil then
-        sdl2allegro_screen := create_system_bitmap(w, h);
+      sdl2allegro_screen := create_system_bitmap(w, h);
       if sdl2allegro_screen = nil then
         sdl2allegro_screen := create_bitmap(w, h);
       ASSERT(sdl2allegro_screen <> nil);
       set_palette(desktop_palette);
-{$ENDIF}
       window.w := w;
       window.h := h;
     end
@@ -804,12 +774,12 @@ implementation
     var res: cint;
   begin
     //e_LogWriteln('SDL_GL_SwapWindow');
-{$IF NOT DEFINED(AL_TEXT)}
     ASSERT(sdl2allegro_screen <> nil);
+    acquire_screen;
     blit(sdl2allegro_screen, screen, 0, 0, 0, 0, sdl2allegro_screen.w, sdl2allegro_screen.h);
     res := show_video_bitmap(screen);
-    //ASSERT(res = 0);
-{$ENDIF}
+    release_screen;
+//    ASSERT(res = 0);
   end;
 
   function SDL_GL_CreateContext(window: PSDL_Window): TSDL_GLContext;
@@ -840,8 +810,11 @@ implementation
 
   function SDL_PushEvent(event: PSDL_Event): SInt32;
   begin
-    e_LogWriteln('SDL_PushEvent');
-    result := 0
+    result := 1;
+    case event.type_ of
+      SDL_QUITEV: quit := True;
+      else ASSERT(FALSE); result := 0
+    end
   end;
 
   function allegro_to_sdl_scancode (x: Integer): Integer;
@@ -928,9 +901,18 @@ implementation
   function SDL_PollEvent(event: PSDL_Event): SInt32;
     var alscan: Integer;
   begin
-    //e_LogWriteln('SDL_PollEvent');
-    poll_keyboard;
     result := 0;
+
+    if quit then
+    begin
+      quit := False;
+      event.type_ := SDL_QUITEV;
+      event.quit.timestamp := ticks;
+      result := 1;
+      Exit
+    end;
+
+    poll_keyboard;
     if not IsEmptyKeyboard then
     begin
       alscan := NextScancode;
@@ -938,18 +920,19 @@ implementation
         event.type_ := SDL_KEYDOWN
       else
         event.type_ := SDL_KEYUP;
-      event.key.timestamp := 0;
+      event.key.timestamp := ticks;
       event.key.windowID := 0;
-      (* df not use it?
+      (**** df not use it?
       if alscan and $80 = 0 then
         event.key.state := SDL_PRESSED
       else
         event.key.state := SDL_RELEASED;
-      *)
+      ****)
       event.key.keysym.scancode := allegro_to_sdl_scancode(alscan);
       event.key.keysym.sym := 0; (* df not use it? *)
       event.key.keysym._mod := 0; (* df not use it? *)
-      result := 1
+      result := 1;
+      Exit
     end
   end;
 
@@ -963,6 +946,12 @@ implementation
 
 (********** SDL **********)
 
+  procedure AllegroQuitCallback; cdecl;
+  begin
+    quit := True
+  end;
+  procedure AllegroQuitCallbackEND; begin end;
+
   function SDL_SetHint( const name: PChar; const value: PChar) : boolean;
   begin
     e_LogWritefln('SDL_SetHint %s %s', [name, value]);
@@ -975,16 +964,30 @@ implementation
     result := allegro_error;
   end;
 
+{$IFDEF GO32V2}
+  (* HACK: allegro crashes while init without this *)
+  var
+    __crt0_argv: PPchar; cvar; external;
+    myargv: array [0..255] of Pchar;
+
+  procedure FIX_ARGV;
+  begin
+    __crt0_argv := @myargv[0];
+    myargv[0] := PChar(ParamStr(0));
+    e_LogWritefln('argv[0] = %s', [myargv[0]]);
+  end;
+{$ENDIF}
+
   function SDL_Init(flags: UInt32): SInt32;
   begin
     e_LogWritefln('SDL_Init %u', [flags]);
     result := -1;
-    __crt0_argv := @myargv[0];
-    myargv[0] := PChar(ParamStr(0));
-    e_LogWritefln('argv[0] = %s', [myargv[0]]);
+    {$IFDEF GO32V2}
+      FIX_ARGV;
+    {$ENDIF}
     if allegro_init = 0 then
     begin
-      e_LogWriteln('SDL_Init inited! ' + ParamStr(0) + ' tickssize=' + IntToStr(sizeof(keyring)) );
+      e_LogWriteln('Allegro Init: ok');
       {$IFDEF GO32V2}
         (* without this df dies with fire when swapped *)
         lock_data(ticks, sizeof(ticks));
@@ -993,12 +996,15 @@ implementation
         lock_data(keyend, sizeof(keyend));
         lock_data(keyring, sizeof(keyring));
         lock_code(@KeyboardWatcher, PtrUInt(@KeyboardWatcherEND) - PtrUInt(@KeyboardWatcher));
+        lock_data(quit, sizeof(quit));
+        lock_code(@AllegroQuitCallback, PtrUInt(@AllegroQuitCallbackEND) - PtrUInt(@AllegroQuitCallback));
       {$ENDIF}
       install_timer;
       install_keyboard;
       keyboard_lowlevel_callback := KeyboardWatcher;
       set_keyboard_rate(0, 0);
       install_int_ex(AllegroTimerCallback, MSEC_TO_TIMER(1));
+      set_close_button_callback(AllegroQuitCallback);
       result := 0
     end
   end;
@@ -1006,6 +1012,7 @@ implementation
   procedure SDL_Quit;
   begin
     e_LogWriteln('SDL_Quit');
+    set_close_button_callback(nil);
     remove_keyboard;
     remove_timer;
     {$IFDEF GO32V2}
@@ -1015,7 +1022,8 @@ implementation
       unlock_data(keyend, sizeof(keyend));
       unlock_data(keyring, sizeof(keyring));
       unlock_code(@KeyboardWatcher, PtrUInt(@KeyboardWatcherEND) - PtrUInt(@KeyboardWatcher));
+      unlock_data(quit, sizeof(quit));
+      unlock_code(@AllegroQuitCallback, PtrUInt(@AllegroQuitCallbackEND) - PtrUInt(@AllegroQuitCallback));
     {$ENDIF}
     allegro_exit
   end;
-

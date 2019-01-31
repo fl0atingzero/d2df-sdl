@@ -8,13 +8,14 @@
   {$DEFINE LibraryLibAllegroDecl := cdecl}
   {$DEFINE LibraryLibAllegroImp := cdecl; external}
   {$DEFINE LibraryLibAllegroVar := cvar; external}
-{$ELSEIF DEFINED(UNIX)}
-  {$LINKLIB liballeg.so}
+{$ELSEIF DEFINED(WINDOWS)}
+  {$DEFINE LibraryLibAllegroDecl := cdecl}
+  {$DEFINE LibraryLibAllegroImp := cdecl; external 'alleg42.dll'}
+  {$DEFINE LibraryLibAllegroVar := external 'alleg42.dll'}
+{$ELSE}
   {$DEFINE LibraryLibAllegroDecl := cdecl}
   {$DEFINE LibraryLibAllegroImp := cdecl; external 'alleg'}
   {$DEFINE LibraryLibAllegroVar := cvar; external 'alleg'}
-{$ELSE}
-  {$ERROR unsupported platform!}
 {$ENDIF}
 
 unit allegro;
@@ -24,18 +25,16 @@ interface
   uses ctypes;
 
   const
-{$IF DEFINED(GO32V2)}
+{$IF DEFINED(GO32V2) OR DEFINED(WINDOWS)}
     ALLEGRO_VERSION = 4;
     ALEGRO_SUB_VERSION = 2;
     ALLEGRO_WIP_VERSION = 3;
     ALLEGRO_VERSION_STR = '4.2.3';
-{$ELSEIF DEFINED(UNIX)}
+{$ELSE}
     ALLEGRO_VERSION = 4;
     ALEGRO_SUB_VERSION = 4;
     ALLEGRO_WIP_VERSION = 2;
     ALLEGRO_VERSION_STR = '4.4.2';
-{$ELSE}
-  {$ERROR unsupported platform!}
 {$ENDIF}
 
     SYSTEM_AUTODETECT = 0;
@@ -242,13 +241,13 @@ interface
    AtExitCallback = procedure; LibraryLibAllegroDecl;
    AtExitFunction = function (func: AtExitCallback): cint; LibraryLibAllegroDecl;
    TimerIntCallback = procedure; LibraryLibAllegroDecl;
+   QuitCallback = procedure; LibraryLibAllegroDecl;
 
   var
     allegro_id: array [0..ALLEGRO_ERROR_SIZE] of char; LibraryLibAllegroVar;
     allegro_error: array [0..ALLEGRO_ERROR_SIZE] of char; LibraryLibAllegroVar;
     keyboard_lowlevel_callback: KeyboardCallback; LibraryLibAllegroVar;
     screen: PBITMAP; LibraryLibAllegroVar;
-
     black_palette: PALETTE; LibraryLibAllegroVar;
     desktop_palette: PALETTE; LibraryLibAllegroVar;
     default_palette: PALETTE; LibraryLibAllegroVar;
@@ -266,9 +265,6 @@ interface
   function install_keyboard: cint; LibraryLibAllegroImp;
   procedure remove_keyboard; LibraryLibAllegroImp;
   function _install_allegro_version_check (system_id: cint; errno_ptr: Pcint; atexit_ptr: AtExitFunction; version: cint): cint; LibraryLibAllegroImp;
-
-  function install_allegro (system_id: cint; errno_ptr: Pcint; atexit_ptr: AtExitFunction): cint; inline; (* macros *)
-  function allegro_init: cint; inline; (* macros *)
 
   function install_timer: cint; LibraryLibAllegroImp;
   procedure remove_timer; LibraryLibAllegroImp;
@@ -298,17 +294,41 @@ interface
 
   procedure set_palette (const p: PALETTE); LibraryLibAllegroImp;
   procedure set_color_depth (depth: cint); LibraryLibAllegroImp;
+  function set_close_button_callback (proc: QuitCallback): cint; LibraryLibAllegroImp;
 
 //  function _install_allegro (system_id: cint; errno_prt: Pcint; AtExitFunction): cint; LibraryLibAllegroImp;
 
   (* MACRO *)
+  function install_allegro (system_id: cint; errno_ptr: Pcint; atexit_ptr: AtExitFunction): cint; inline;
+  function allegro_init: cint; inline;
+
   function TIMERS_PER_SECOND: clong; inline;
   function SECS_TO_TIMER (x: clong): clong; inline;
   function MSEC_TO_TIMER (x: clong): clong; inline;
   function BPS_TO_TIMER (x: clong): clong; inline;
   function BPM_TO_TIMER (x: clong): clong; inline;
 
+(*
+  function acquire_bitmap (bmp: PBITMAP); inline;
+  function release_bitmap (bmp: PBITMAP); inline;
+  function acquire_screen; inline;
+  function release_screen; inline;
+*)
+
+  procedure acquire_bitmap (bmp: PBITMAP); LibraryLibAllegroImp;
+  procedure release_bitmap (bmp: PBITMAP); LibraryLibAllegroImp;
+  procedure acquire_screen; LibraryLibAllegroImp;
+  procedure release_screen; LibraryLibAllegroImp;
+
 implementation
+
+  {$IF DEFINED(GO32V2)}
+    function atexit (func: AtexitCallback): cint; cdecl; external;
+  {$ELSEIF DEFINED(WINDOWS)}
+    function atexit (func: AtexitCallback): cint; cdecl; external 'msvcrt.dll';
+  {$ELSE}
+    function atexit (func: AtexitCallback): cint; cdecl; external 'c';
+  {$ENDIF}
 
   function install_allegro (system_id: cint; errno_ptr: Pcint; atexit_ptr: AtExitFunction): cint; inline;
   begin
@@ -317,12 +337,9 @@ implementation
 
   function allegro_init: cint; inline;
   begin
-    (* original macros sets atexit_ptr *)
     (* original macros sets libc errno? *)
-    allegro_init := _install_allegro_version_check(SYSTEM_AUTODETECT, nil, nil, (ALLEGRO_VERSION shl 16) OR (ALEGRO_SUB_VERSION shl 8) OR ALLEGRO_WIP_VERSION)
+    allegro_init := _install_allegro_version_check(SYSTEM_AUTODETECT, nil, @atexit, (ALLEGRO_VERSION shl 16) OR (ALEGRO_SUB_VERSION shl 8) OR ALLEGRO_WIP_VERSION)
   end;
-
-
 
   function TIMERS_PER_SECOND: clong; inline;
   begin
@@ -348,5 +365,14 @@ implementation
   begin
     BPM_TO_TIMER := 60 * TIMERS_PER_SECOND div x
   end;
+
+(*
+  function acquire_bitmap (bmp: PBITMAP); inline;
+  begin
+    ASSERT(bmp <> nil);
+    if bmp.vtable.acquire <> nil then
+      bmp.vtable.acquire(bmp)
+  end;
+*)
 
 end.

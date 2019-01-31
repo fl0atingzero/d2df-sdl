@@ -33,7 +33,7 @@ implementation
     utils;
 
 
-{$IFDEF WINDOWS}
+{$IF DEFINED(WINDOWS)}
 function setenv(const VarStr: PChar; const VarVal: PChar; Repl: cint): cint;
 begin
   if (SetEnvironmentVariable(VarStr, VarVal)) then
@@ -41,18 +41,12 @@ begin
   else
     Result := -1;
 end;
+{$ELSEIF DEFINED(GO32V2)}
+  {$LINKLIB c}
+  function setenv(const VarStr: PChar; const VarVal: PChar; Repl: cint): cint; cdecl; external;
 {$ELSE}
-  {$IFDEF GO32V2}
-    function setenv(const VarStr: PChar; const VarVal: PChar; Repl: cint): cint;
-    begin
-      {$WARNING setenv stub!}
-      result := 0
-    end;
-  {$ELSE}
-    {$LINKLIB c}
-    const clib = 'c';
-    function setenv(const VarStr: PChar; const VarVal: PChar; Repl: cint): cint; cdecl; external clib name 'setenv';
-  {$ENDIF}
+  {$LINKLIB c}
+  function setenv(const VarStr: PChar; const VarVal: PChar; Repl: cint): cint; cdecl; external 'c' name 'setenv';
 {$ENDIF}
 
 function SetEnvVar(const VarName: AnsiString; const VarVal: AnsiString): Boolean;
