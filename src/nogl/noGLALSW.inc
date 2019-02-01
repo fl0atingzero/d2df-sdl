@@ -37,11 +37,14 @@ implementation
       x, y: Integer;
     end;
     stack_ptr: Integer;
+    vpx, vpy: Integer;
+    pointSize: Integer;
+    matrixMode: GLenum;
 
   function AddTexture: Integer;
     var i: Integer;
   begin
-    for i := 0 to High(tex) do
+    for i := 1 to High(tex) do
       if not tex[i].used then
       begin
         tex[i].used := true;
@@ -60,7 +63,7 @@ implementation
   begin
     assert(i >= 0);
     assert(i <= High(tex));
-    //assert(tex[i].used); (* free unallocated texture *)
+    assert((i = 0) or tex[i].used); (* free unallocated texture *)
     tex[i].used := false;
     if tex[i].bmp <> nil then
       destroy_bitmap(tex[i].bmp);
@@ -100,7 +103,10 @@ implementation
 
   function glGetString(name: GLenum): PChar;
   begin
-    result := ''
+    if name = GL_EXTENSIONS then (* separated by space *)
+      result := 'GL_ARB_texture_non_power_of_two'
+    else
+      result := nil
   end;
 
   procedure glClearColor(red, green, blue, alpha: GLclampf);
@@ -124,10 +130,14 @@ implementation
 
   procedure glPointSize(size: GLfloat);
   begin
+    ASSERT(size >= 0);
+    if size <= 1.0 then pointSize := ceil(size)
+    else pointSize := floor(size)
   end;
 
   procedure glLineWidth(width: GLfloat);
   begin
+    (* width > 1 used in rare cases, not critical *)
   end;
 
   procedure glGetIntegerv(pname: GLenum; params: PGLint);
@@ -165,24 +175,53 @@ implementation
     assert(Length(cmds.c) mod ValPerColor = 0);
     assert(Length(cmds.t) mod ValPerCoord = 0);
 
-    offx := stack[stack_ptr].x;
-    offy := stack[stack_ptr].y;
+    offx := vpx + stack[stack_ptr].x;
+    offy := vpy + stack[stack_ptr].y;
 
     case cmds.mode of
     GL_POINTS:
       begin
-         (* implement case for texture coords? *)
-         if Length(cmds.c) <> 0 then
-         begin
-           assert(Length(cmds.c) * 2 = Length(cmds.v)); (* not enough colors *)
-           for i := 0 to Length(cmds.v) div 2 - 1 do
-             putpixel(sdl2allegro_screen, offx + cmds.v[i * 2], offy + cmds.v[i * 2 + 1], cmds.c[i])
-         end
-         else
-         begin
-           for i := 0 to Length(cmds.v) div 2 - 1 do
-             putpixel(sdl2allegro_screen, offx + cmds.v[i * 2], offy + cmds.v[i * 2 + 1], ccol)
-         end
+        (* implement case for texture coords? *)
+        if pointSize = 1 then
+        begin
+          if Length(cmds.c) <> 0 then
+          begin
+            assert(Length(cmds.c) * 2 = Length(cmds.v)); (* not enough colors *)
+            for i := 0 to Length(cmds.v) div 2 - 1 do
+              putpixel(sdl2allegro_screen, offx + cmds.v[i * 2], offy + cmds.v[i * 2 + 1], cmds.c[i])
+          end
+          else
+          begin
+            for i := 0 to Length(cmds.v) div 2 - 1 do
+              putpixel(sdl2allegro_screen, offx + cmds.v[i * 2], offy + cmds.v[i * 2 + 1], ccol)
+          end
+        end
+        else if pointSize > 1 then
+        begin
+           x0 := offx - pointSize div 2;
+           y0 := offy - pointSize div 2;
+           x1 := offx - (pointSize - 1) div 2;
+           y1 := offy - (pointSize - 1) div 2;
+           if Length(cmds.c) <> 0 then
+           begin
+             assert(Length(cmds.c) * 2 = Length(cmds.v)); (* not enough colors *)
+             for i := 0 to Length(cmds.v) div 2 - 1 do
+             begin
+               w := cmds.v[i * 2 + 0];
+               h := cmds.v[i * 2 + 1];
+               rectfill(sdl2allegro_screen, x0 + w, y0 + h, x1 + w, y1 + h, cmds.c[i])
+             end
+           end
+           else
+           begin
+             for i := 0 to Length(cmds.v) div 2 - 1 do
+             begin
+               w := cmds.v[i * 2 + 0];
+               h := cmds.v[i * 2 + 1];
+               rectfill(sdl2allegro_screen, x0 + w, y0 + h, x1 + w, y1 + h, ccol)
+             end
+           end
+        end
       end;
     GL_LINES:
       begin
@@ -241,14 +280,27 @@ implementation
               tmp := s0;
               s0 := s1;
               s1 := tmp;
-              fliph := not fliph
+              fliph := not fliph;
             end;
             if t1 < t0 then
             begin
               tmp := t0;
               t0 := t1;
               t1 := tmp;
-              flipv := not flipv
+              flipv := not flipv;
+            end;
+
+            if fliph then
+            begin
+              tmp := s0;
+              s0 := w - s1;
+              s1 := w - tmp;
+            end;
+            if flipv then
+            begin
+              tmp := t0;
+              t0 := h - t1;
+              t1 := h - tmp;
             end;
 
             s0 := s0 mod w;
@@ -272,7 +324,6 @@ implementation
             for j := 0 to (y1 - y0 + h - 1) div h - 1 do
               for k := 0 to (x1 - x0 + w - 1) div w - 1 do
                 draw_sprite_proc(sdl2allegro_screen, tex[ctex].bmp, offx + x0 + k * w - s0, offy + y0 + j * h - t0);
-                //blit(tex[ctex].bmp, sdl2allegro_screen, 0, 0, offx + x0 + k * w - s0, offy + y0 + j * h - t0, w, h);
 
             set_clip_rect(sdl2allegro_screen, oldx0, oldy0, oldx1, oldy1);
 
@@ -350,58 +401,88 @@ implementation
 
   procedure glLoadIdentity;
   begin
+    if matrixMode <> GL_MODELVIEW then Exit;
     with stack[stack_ptr] do
     begin
       x := 0;
       y := 0;
+      (* TODO Rotation and scale *)
     end
   end;
 
   procedure glMatrixMode(mode: GLenum);
   begin
+    (* GL_PROJECTION -> verify or ignore *)
+    (* GL_MODELVIEW -> apply *)
+    ASSERT((mode = GL_PROJECTION) or (mode = GL_MODELVIEW));
+    matrixMode := mode;
   end;
 
   procedure glLoadMatrixd(const m: PGLdouble);
   begin
-    //m[x,y]
+    if matrixMode <> GL_MODELVIEW then Exit;
+
+    (*
+    e_LogWritefln('glLoadMatrix:', []);
+    e_LogWritefln('| %s %s %s %s |', [m[0], m[1], m[2], m[3]]);
+    e_LogWritefln('| %s %s %s %s |', [m[4], m[5], m[6], m[7]]);
+    e_LogWritefln('| %s %s %s %s |', [m[8], m[9], m[10], m[11]]);
+    e_LogWritefln('| %s %s %s %s |', [m[12], m[13], m[14], m[15]]);
+    *)
+    with stack[stack_ptr] do
+    begin
+      x := Trunc(m[3]);
+      y := Trunc(m[7]);
+      ASSERT(m[11] = 0);
+      (* TODO Rotation and Scale *)
+    end
   end;
 
   procedure glPushMatrix;
   begin
+    if matrixMode <> GL_MODELVIEW then Exit;
     stack[stack_ptr + 1] := stack[stack_ptr];
     INC(stack_ptr);
   end;
 
   procedure glPopMatrix;
   begin
+    if matrixMode <> GL_MODELVIEW then Exit;
     DEC(stack_ptr)
   end;
 
   procedure glTranslatef(x, y, z: GLfloat);
   begin
+    if matrixMode <> GL_MODELVIEW then Exit;
     ASSERT(z = 0); (* 3D not supported *)
-    stack[stack_ptr].x := Trunc(x);
-    stack[stack_ptr].y := Trunc(y);
+    stack[stack_ptr].x += Trunc(x);
+    stack[stack_ptr].y += Trunc(y);
   end;
 
   procedure glRotatef(angle, x, y, z: GLfloat);
   begin
-    //ASSERT(z = 0); (* 3D not supported *)
-    (* TODO Rotation *)
+    if matrixMode <> GL_MODELVIEW then Exit;
+    ASSERT(x = 0); (* 3D not supported *)
+    ASSERT(y = 0); (* 3D not supported *)
+    (* TODO a := deg(angle * z) *)
   end;
 
   procedure glScalef(x, y, z: GLfloat);
   begin
-    //ASSERT(z = 1); (* 3D not supported *)
+    if matrixMode <> GL_MODELVIEW then Exit;
+    (* 3D not supported, but z can be any *)
     (* TODO Scale *)
   end;
 
   procedure glViewport(x, y: GLint; width, height: GLsizei);
   begin
+    vpx := x; vpy := y;
+    set_clip_rect(sdl2allegro_screen, x, y, x + width, y + height);
   end;
 
   procedure glScissor(x, y: GLint; width, height: GLsizei);
   begin
+    //set_clip_rect(sdl2allegro_screen, x, y, width, height)
   end;
 
   procedure glStencilMask(mask: GLuint);
@@ -446,7 +527,7 @@ implementation
   end;
 
   procedure glTexImage2D(target: GLenum; level, internalformat: GLint; width, height: GLsizei; border: GLint; format, atype: GLenum; const pixels: Pointer);
-    var i, j, adr: Integer; p: PByte; color: cint;
+    var i, j, adr: Integer; p: PByte; color, trans: cint;
   begin
     assert(target = GL_TEXTURE_2D);
     assert(level = 0);
@@ -461,10 +542,7 @@ implementation
 
     if tex[ctex].bmp <> nil then
       destroy_bitmap(tex[ctex].bmp);
-    // Video bitmap can lead to bad textures under dos
-    //tex[ctex].bmp := create_video_bitmap(width, height);
-    //if tex[ctex].bmp = nil then
-      tex[ctex].bmp := create_system_bitmap(width, height);
+    tex[ctex].bmp := create_system_bitmap(width, height);
     if tex[ctex].bmp = nil then
       tex[ctex].bmp := create_bitmap(width, height);
     assert(tex[ctex].bmp <> nil);
@@ -474,12 +552,17 @@ implementation
     p := pixels;
     if format = GL_RGBA then
     begin
+      if DEFAULT_DEPTH <= 8 then
+        trans := 0
+      else
+        trans := makeacol(255, 0, 255, 0);
+
       for j := 0 to height - 1 do
         for i := 0 to width - 1 do
         begin
           adr := j * width * 4 + i * 4;
-          if p[adr + 3] <> $FF then
-            color := 0
+          if p[adr + 3] = 0 then
+            color := trans
           else
             color := makeacol(p[adr], p[adr + 1], p[adr + 2], p[adr + 3]);
           putpixel(tex[ctex].bmp, i, j, color)
@@ -497,7 +580,7 @@ implementation
   end;
 
   procedure glTexSubImage2D(target: GLenum; level, xoffset, yoffset: GLint; width, height: GLsizei; format, atype: GLenum; const pixels: Pointer);
-    var i, j, adr: Integer; p: PByte; color: Cint;
+    var i, j, adr: Integer; p: PByte; color, trans: Cint;
   begin
     assert(target = GL_TEXTURE_2D);
     assert(level = 0);
@@ -516,12 +599,17 @@ implementation
     p := pixels;
     if format = GL_RGBA then
     begin
+      if DEFAULT_DEPTH <= 8 then
+        trans := 0
+      else
+        trans := makeacol(255, 0, 255, 0);
+
       for j := 0 to height - 1 do
         for i := 0 to width - 1 do
         begin
           adr := j * width * 4 + i * 4;
-          if p[adr + 3] <> $FF then
-            color := 0
+          if p[adr + 3] = 0 then
+            color := trans
           else
             color := makeacol(p[adr], p[adr + 1], p[adr + 2], p[adr + 3]);
           putpixel(tex[ctex].bmp, i, j, color)

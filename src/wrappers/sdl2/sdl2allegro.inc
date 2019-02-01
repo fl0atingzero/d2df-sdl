@@ -412,8 +412,6 @@ implementation
 
   /// MACRO ///
 
-//from "sdl_pixels.h"
-
   function SDL_PIXELFLAG(X: Cardinal): Cardinal;
   begin
     Result := (X shr 28) and $0F;
@@ -550,27 +548,23 @@ implementation
 
   function SDL_GetPerformanceCounter: UInt64;
   begin
-    //e_LogWriteln('SDL_GetPerformanceCounter');
     (* TODO *)
     result := ticks;
   end;
 
   function SDL_GetPerformanceFrequency: UInt64;
   begin
-    //e_LogWriteln('SDL_GetPerformanceFrequency');
     (* TODO *)
     result := 1
   end;
 
   procedure SDL_Delay(ms: UInt32);
   begin
-    //e_LogWriteln('SDL_Delay');
     rest(ms)
   end;
 
   function SDL_GetTicks: UInt32;
   begin
-    //e_LogWriteln('SDL_GetTicks');
     result := ticks;
   end;
 
@@ -797,7 +791,8 @@ implementation
   function SDL_GL_SetAttribute(attr: TSDL_GLattr; value: SInt32): SInt32;
   begin
     e_LogWritefln('SDL_GL_SetAttribute %s %s', [attr, value]);
-    result := -1;
+    allegro_error := 'Attribute ' + IntToStr(attr) + ' := ' + IntToStr(value) + 'not supported';
+    result := -1
   end;
 
   function SDL_GL_GetAttribute(attr: TSDL_GLattr; value: PInt): SInt32;
@@ -941,6 +936,7 @@ implementation
   function SDL_ShowCursor(toggle: SInt32): SInt32;
   begin
     e_LogWritefln('SDL_ShowCursor %s', [toggle]);
+    (* TODO *)
     result := 0
   end;
 
@@ -955,12 +951,12 @@ implementation
   function SDL_SetHint( const name: PChar; const value: PChar) : boolean;
   begin
     e_LogWritefln('SDL_SetHint %s %s', [name, value]);
+    (* TODO *)
     result := false
   end;
 
   function SDL_GetError: PAnsiChar;
   begin
-    e_LogWritefln('SDL_GetError => %s', [allegro_error]);
     result := allegro_error;
   end;
 
@@ -980,7 +976,6 @@ implementation
 
   function SDL_Init(flags: UInt32): SInt32;
   begin
-    e_LogWritefln('SDL_Init %u', [flags]);
     result := -1;
     {$IFDEF GO32V2}
       FIX_ARGV;
@@ -1011,7 +1006,6 @@ implementation
 
   procedure SDL_Quit;
   begin
-    e_LogWriteln('SDL_Quit');
     set_close_button_callback(nil);
     remove_keyboard;
     remove_timer;
