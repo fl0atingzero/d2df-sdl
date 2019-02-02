@@ -205,7 +205,7 @@ interface
       type_: UInt32;                                          // SDL_TEXTINPUT
       timestamp: UInt32;
       windowID: UInt32;                                       // The window with keyboard focus, if any
-      text: array[0..SDL_TEXTINPUTEVENT_TEXT_SIZE] of Char;   // The input text
+      text: array[0..SDL_TEXTINPUTEVENT_TEXT_SIZE - 1] of Char;   // The input text
     end;
 
     TSDL_QuitEvent = record
@@ -377,8 +377,31 @@ implementation
   var
     keyring: array [0..maxKeyBuffer - 1] of Integer;
     keybeg, keyend: Integer;
+    inputChar: Char;
+    inputText: Boolean;
     ticks: UInt32;
     quit: Boolean;
+
+    s2lc: array [0..KEY_MAX] of char = (
+      #00, 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o',
+      'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '0', '1', '2', '3', '4',
+      '5', '6', '7', '8', '9', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', #00,
+      #00, #00, #00, #00, #00, #00, #00, #00, #00, #00, #00, #00, '`', '-', '=', #00,
+      #09, '[', ']', #10, ';', #39, '\', '\', ',', '.', '/', ' ', #00, #00, #00, #00,
+      #00, #00, #00, #00, #00, '/', '*', '-', '+', #00, #00, #00, #00, #00, #00, #00,
+      #00, #00, #00, #00, '@', #00, ':', #00, '=', #00, ';', #00, #00, #00, #00, #00,
+      #00, #00, #00, #00, #00, #00, #00, #00, #00, #00, #00, #00, #00, #00, #00, #00
+    );
+    s2uc: array [0..KEY_MAX] of char = (
+      #00, 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O',
+      'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', ')', '!', '@', '#', '$',
+      '%', '^', '&', '*', '(', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', #00,
+      #00, #00, #00, #00, #00, #00, #00, #00, #00, #00, #00, #00, '~', '_', '+', #00,
+      #09, '{', '}', #10, ':', '"', '|', '|', '<', '>', '?', ' ', #00, #00, #00, #00,
+      #00, #00, #00, #00, #00, '/', '*', '-', '+', #00, #00, #00, #00, #00, #00, #00,
+      #00, #00, #00, #00, '@', #00, ':', #00, '=', #00, ';', #00, #00, #00, #00, #00,
+      #00, #00, #00, #00, #00, #00, #00, #00, #00, #00, #00, #00, #00, #00, #00, #00
+    );
 
   function IsEmptyKeyboard: Boolean;
   begin
@@ -465,15 +488,20 @@ implementation
 
   function SDL_IsTextInputActive: TSDL_Bool;
   begin
-    result := SDL_FALSE
+    if inputText then
+      result := SDL_TRUE
+    else
+      result := SDL_FALSE
   end;
 
   procedure SDL_StartTextInput;
   begin
+    inputText := True
   end;
 
   procedure SDL_StopTextInput;
   begin
+    inputText := False
   end;
 
 (********** JOYSTICK **********)
@@ -753,41 +781,6 @@ implementation
 
 (********** OPENGL MANAGEMENT **********)
 
-  function SDL_GL_MakeCurrent(window: PSDL_Window; context: TSDL_GLContext): SInt32;
-  begin
-    e_LogWriteln('SDL_GL_MakeCurrent');
-    result := 0
-  end;
-
-  procedure SDL_GL_DeleteContext(context: TSDL_GLContext);
-  begin
-    e_LogWriteln('SDL_GL_DeleteContext');
-  end;
-
-  procedure SDL_GL_SwapWindow(window: PSDL_Window);
-    var res: cint;
-  begin
-    //e_LogWriteln('SDL_GL_SwapWindow');
-    ASSERT(sdl2allegro_screen <> nil);
-    acquire_screen;
-    blit(sdl2allegro_screen, screen, 0, 0, 0, 0, sdl2allegro_screen.w, sdl2allegro_screen.h);
-    res := show_video_bitmap(screen);
-    release_screen;
-//    ASSERT(res = 0);
-  end;
-
-  function SDL_GL_CreateContext(window: PSDL_Window): TSDL_GLContext;
-  begin
-    e_LogWriteln('SDL_GL_CreateContext');
-    result := window
-  end;
-
-  function SDL_GL_SetSwapInterval(interval: SInt32): SInt32;
-  begin
-    e_LogWritefln('SDL_GL_SetSwapInterval %s', [interval]);
-    result := 0
-  end;
-
   function SDL_GL_SetAttribute(attr: TSDL_GLattr; value: SInt32): SInt32;
   begin
     e_LogWritefln('SDL_GL_SetAttribute %s %s', [attr, value]);
@@ -799,6 +792,38 @@ implementation
   begin
     e_LogWritefln('SDL_GL_GetAttribute %s', [attr]);
     value^ := 0; result := -1
+  end;
+
+  function SDL_GL_CreateContext(window: PSDL_Window): TSDL_GLContext;
+  begin
+    e_LogWriteln('SDL_GL_CreateContext');
+    result := window
+  end;
+
+  function SDL_GL_MakeCurrent(window: PSDL_Window; context: TSDL_GLContext): SInt32;
+  begin
+    e_LogWriteln('SDL_GL_MakeCurrent');
+    result := 0
+  end;
+
+  procedure SDL_GL_DeleteContext(context: TSDL_GLContext);
+  begin
+    e_LogWriteln('SDL_GL_DeleteContext');
+  end;
+
+  function SDL_GL_SetSwapInterval(interval: SInt32): SInt32;
+  begin
+    e_LogWritefln('SDL_GL_SetSwapInterval %s', [interval]);
+    result := 0
+  end;
+
+  procedure SDL_GL_SwapWindow(window: PSDL_Window);
+  begin
+    ASSERT(sdl2allegro_screen <> nil);
+    acquire_screen;
+    blit(sdl2allegro_screen, screen, 0, 0, 0, 0, sdl2allegro_screen.w, sdl2allegro_screen.h);
+    show_video_bitmap(screen);
+    release_screen;
   end;
 
 (********** EVENTS **********)
@@ -894,7 +919,7 @@ implementation
   end;
 
   function SDL_PollEvent(event: PSDL_Event): SInt32;
-    var alscan: Integer;
+    var alscan: Integer; pressed, shift, caps: Boolean;
   begin
     result := 0;
 
@@ -907,22 +932,47 @@ implementation
       Exit
     end;
 
+    if inputText and (inputChar <> #0) then
+    begin
+      event.type_ := SDL_TEXTINPUT;
+      event.text.timestamp := ticks;
+      event.text.windowID := 0;
+      event.text.text[0] := inputChar;
+      event.text.text[1] := #0;
+      inputChar := #0;
+      result := 1;
+      Exit
+    end;
+
     poll_keyboard;
     if not IsEmptyKeyboard then
     begin
       alscan := NextScancode;
-      if alscan and $80 = 0 then
+      pressed := alscan and $80 = 0;
+      if pressed then
+      begin
+        shift := key_shifts and KB_SHIFT_FLAG <> 0;
+        caps := key_shifts and KB_CAPSLOCK_FLAG <> 0;
+        if shift xor caps then
+          inputChar := s2uc[alscan and $7F]
+        else
+          inputChar := s2lc[alscan and $7F];
         event.type_ := SDL_KEYDOWN
+      end
       else
-        event.type_ := SDL_KEYUP;
+      begin
+        inputChar := #0;
+        event.type_ := SDL_KEYUP
+      end;
       event.key.timestamp := ticks;
       event.key.windowID := 0;
       (**** df not use it?
-      if alscan and $80 = 0 then
+      if pressed then
         event.key.state := SDL_PRESSED
       else
         event.key.state := SDL_RELEASED;
       ****)
+      event.key._repeat := 0;
       event.key.keysym.scancode := allegro_to_sdl_scancode(alscan);
       event.key.keysym.sym := 0; (* df not use it? *)
       event.key.keysym._mod := 0; (* df not use it? *)

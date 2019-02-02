@@ -252,6 +252,7 @@ interface
     desktop_palette: PALETTE; LibraryLibAllegroVar;
     default_palette: PALETTE; LibraryLibAllegroVar;
     _current_palette: PALETTE; LibraryLibAllegroVar;
+    key_shifts: cint; LibraryLibAllegroVar;
 
   function get_desktop_resolution (width, height: Pcint): cint; LibraryLibAllegroImp;
   function get_gfx_mode_list (card: cint): PGFX_MODE_LIST; LibraryLibAllegroImp;
@@ -298,6 +299,17 @@ interface
 
 //  function _install_allegro (system_id: cint; errno_prt: Pcint; AtExitFunction): cint; LibraryLibAllegroImp;
 
+  procedure acquire_bitmap (bmp: PBITMAP); LibraryLibAllegroImp;
+  procedure release_bitmap (bmp: PBITMAP); LibraryLibAllegroImp;
+  procedure acquire_screen; LibraryLibAllegroImp;
+  procedure release_screen; LibraryLibAllegroImp;
+
+  procedure rotate_sprite (bmp, sprite: PBITMAP; x, y: cint; a: cint32); LibraryLibAllegroImp;
+  procedure rotate_sprite_v_flip (bmp, sprite: PBITMAP; x, y: cint; a: cint32); LibraryLibAllegroImp;
+
+  function scancode_to_ascii (scancode: cint): cint; LibraryLibAllegroImp;
+  function scancode_to_name (scancode: cint): PChar; LibraryLibAllegroImp;
+
   (* MACRO *)
   function install_allegro (system_id: cint; errno_ptr: Pcint; atexit_ptr: AtExitFunction): cint; inline;
   function allegro_init: cint; inline;
@@ -308,17 +320,6 @@ interface
   function BPS_TO_TIMER (x: clong): clong; inline;
   function BPM_TO_TIMER (x: clong): clong; inline;
 
-(*
-  function acquire_bitmap (bmp: PBITMAP); inline;
-  function release_bitmap (bmp: PBITMAP); inline;
-  function acquire_screen; inline;
-  function release_screen; inline;
-*)
-
-  procedure acquire_bitmap (bmp: PBITMAP); LibraryLibAllegroImp;
-  procedure release_bitmap (bmp: PBITMAP); LibraryLibAllegroImp;
-  procedure acquire_screen; LibraryLibAllegroImp;
-  procedure release_screen; LibraryLibAllegroImp;
 
 implementation
 

@@ -34,7 +34,7 @@ implementation
     ccol: Integer;
     clearColor: cint;
     stack: array [0..StackSize - 1] of record
-      x, y: Integer;
+      x, y, a: Integer;
     end;
     stack_ptr: Integer;
     vpx, vpy: Integer;
@@ -165,10 +165,11 @@ implementation
 
   procedure glEnd;
     var
-      i, j, k, w, h, x0, y0, x1, y1, offx, offy, tmp, s0, t0, s1, t1: Integer;
+      i, j, k, w, h, x0, y0, x1, y1, offx, offy, tmp, s0, t0, s1, t1, angle: Integer;
       oldx0, oldy0, oldx1, oldy1: cint;
       flipv, fliph: Boolean;
       draw_sprite_proc: procedure (bmp, sprite: Allegro.PBITMAP; x, y: cint); cdecl;
+      rotate_sprite_proc: procedure (bmp, sprite: Allegro.PBITMAP; x, y: cint; a: cint32); cdecl;
   begin
     assert(cmds.mode <> GL_INVALID_ENUM);
     assert(Length(cmds.v) mod ValPerVertex = 0);
@@ -177,6 +178,7 @@ implementation
 
     offx := vpx + stack[stack_ptr].x;
     offy := vpy + stack[stack_ptr].y;
+    angle := stack[stack_ptr].a;
 
     case cmds.mode of
     GL_POINTS:
@@ -317,13 +319,27 @@ implementation
             else
               draw_sprite_proc := Allegro.draw_sprite;
 
+            if flipv and fliph then
+              rotate_sprite_proc := Allegro.rotate_sprite_v_flip (* ??? *)
+            else if flipv then
+              rotate_sprite_proc := Allegro.rotate_sprite_v_flip
+            else if fliph then
+              rotate_sprite_proc := Allegro.rotate_sprite (* ??? *)
+            else
+              rotate_sprite_proc := Allegro.rotate_sprite;
+
             oldx0 := 0; oldy0 := 0; oldx1 := 0; oldy1 := 0;
             get_clip_rect(sdl2allegro_screen, oldx0, oldy0, oldx1, oldy1);
             set_clip_rect(sdl2allegro_screen, max(oldx0, offx + x0), max(oldy0, offy + y0), min(oldx1, offx + x1), min(oldy1, offy + y1));
 
-            for j := 0 to (y1 - y0 + h - 1) div h - 1 do
-              for k := 0 to (x1 - x0 + w - 1) div w - 1 do
-                draw_sprite_proc(sdl2allegro_screen, tex[ctex].bmp, offx + x0 + k * w - s0, offy + y0 + j * h - t0);
+            if angle = 0 then
+              for j := 0 to (y1 - y0 + h - 1) div h - 1 do
+                for k := 0 to (x1 - x0 + w - 1) div w - 1 do
+                  draw_sprite_proc(sdl2allegro_screen, tex[ctex].bmp, offx + x0 + k * w - s0, offy + y0 + j * h - t0)
+            else
+              for j := 0 to (y1 - y0 + h - 1) div h - 1 do
+                for k := 0 to (x1 - x0 + w - 1) div w - 1 do
+                  rotate_sprite_proc(sdl2allegro_screen, tex[ctex].bmp, offx + x0 + k * w - s0, offy + y0 + j * h - t0, angle);
 
             set_clip_rect(sdl2allegro_screen, oldx0, oldy0, oldx1, oldy1);
 
@@ -464,7 +480,8 @@ implementation
     if matrixMode <> GL_MODELVIEW then Exit;
     ASSERT(x = 0); (* 3D not supported *)
     ASSERT(y = 0); (* 3D not supported *)
-    (* TODO a := deg(angle * z) *)
+    // angle 360deg == 256 with conversion to fixed point 16.16
+    stack[stack_ptr].a += floor(angle * z * 0.71111) * 65536
   end;
 
   procedure glScalef(x, y, z: GLfloat);
