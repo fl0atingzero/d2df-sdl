@@ -273,9 +273,15 @@ procedure ZeroMemory (Dest: Pointer; Len: LongWord); inline;
 
 implementation
 
-uses
-  xstreams;
+  uses
+    xstreams, StrUtils, e_Log;
 
+  const
+    {$IFDEF GO32V2}
+      DirSep = '\';
+    {$ELSE}
+      DirSep = '/';
+    {$ENDIF}
 
 // ////////////////////////////////////////////////////////////////////////// //
 procedure CopyMemory (Dest: Pointer; Src: Pointer; Len: LongWord); inline;
@@ -758,7 +764,7 @@ var
   pos: Integer;
   ch: AnsiChar;
 begin
-  if (Length(fn) = 0) then begin result := './'; exit; end;
+  if (Length(fn) = 0) then begin result := '.' + DirSep; exit; end;
   if (fn[Length(fn)] = '/') or (fn[Length(fn)] = '\') then begin result := fn; exit; end;
   pos := Length(fn);
   while (pos > 0) do
@@ -767,7 +773,7 @@ begin
     if (ch = '/') or (ch = '\') then begin result := Copy(fn, 1, pos); exit; end;
     Dec(pos);
   end;
-  result := './'; // no path -> current dir
+  result := '.' + DirSep; // no path -> current dir
 end;
 
 
@@ -794,7 +800,7 @@ begin
   pos := 1;
   while (pos <= Length(fn)) and ((fn[pos] = '/') or (fn[pos] = '\')) do Inc(pos);
   result := path;
-  if (Length(result) > 0) and ((result[Length(result)] <> '/') and (result[Length(result)] <> '\')) then result += '/';
+  if (Length(result) > 0) and ((result[Length(result)] <> '/') and (result[Length(result)] <> '\')) then result += DirSep;
   if (pos <= Length(fn)) then
   begin
     result += Copy(fn, pos, Length(fn)-pos+1);
@@ -803,7 +809,7 @@ begin
     begin
       Delete(result, Length(result), 1);
     end;
-    if (fn[Length(fn)] = '/') or (fn[Length(fn)] = '\') then result += '/';
+    if (fn[Length(fn)] = '/') or (fn[Length(fn)] = '\') then result += DirSep;
   end;
 end;
 
@@ -1076,7 +1082,7 @@ var
 begin
   npt := pathname;
   result := (length(npt) > 0);
-  if (length(npt) > 0) and ((npt[1] = '/') or (npt[1] = '\')) then newname := '/';
+  if (length(npt) > 0) and ((npt[1] = '/') or (npt[1] = '\')) then newname := DirSep;
   while length(npt) > 0 do
   begin
     // remove trailing slashes
@@ -1092,7 +1098,7 @@ begin
     // remove trailing slashes again
     while (length(npt) > 0) and ((npt[1] = '/') or (npt[1] = '\')) do Delete(npt, 1, 1);
     wantdir := lastIsDir or (length(npt) > 0); // do we want directory here?
-    //writeln(Format('npt=[%s]; newname=[%s]; curname=[%s]; wantdir=%d', [npt, newname, curname, Integer(wantdir)]));
+    //e_LogWritefln('npt=[%s]; newname=[%s]; curname=[%s]; wantdir=%d', [npt, newname, curname, Integer(wantdir)]);
     // try the easiest case first
     attr := FileGetAttr(newname+curname);
     if attr <> -1 then
@@ -1101,11 +1107,11 @@ begin
       begin
         // i found her!
         newname := newname+curname;
-        if wantdir then newname := newname+'/';
+        if wantdir then newname := newname + DirSep;
         continue;
       end;
     end;
-    //writeln(Format('npt=[%s]; newname=[%s]; curname=[%s]; wantdir=%d', [npt, newname, curname, Integer(wantdir)]));
+    //e_LogWritefLn('npt=[%s]; newname=[%s]; curname=[%s]; wantdir=%d', [npt, newname, curname, Integer(wantdir)]);
     // alas, either not found, or invalid attributes
     foundher := false;
     try
@@ -1115,7 +1121,7 @@ begin
         begin
           // i found her!
           newname := newname+sr.name;
-          if wantdir then newname := newname+'/';
+          if wantdir then newname := newname + DirSep;
           foundher := true;
           break;
         end;
@@ -1129,6 +1135,17 @@ begin
 end;
 
 
+(** Replace slashes to backslashes for DOS **)
+function FixFileName (filename: AnsiString): AnsiString;
+begin
+  {$IFDEF GO32V2}
+    Result := StringReplace(filename, '/', '\', [rfReplaceAll, rfIgnoreCase])
+  {$ELSE}
+    Result := filename
+  {$ENDIF}
+end;
+
+
 const fileExtensions: array [0..6] of AnsiString = ('.wad', '.dfzip', '.dfwad', '.pk3', '.pak', '.zip', '.dfz');
 
 function findDiskWad (fname: AnsiString): AnsiString;
@@ -1137,28 +1154,33 @@ var
   newExt: AnsiString = '';
 begin
   result := '';
-  //writeln('findDiskWad00: fname=<', fname, '>');
+{$IFDEF GO32V2}
+  // FIXIT: it didn't work under MSDOS for some reason, so i just cut extension replacement
+  result := FixFileName(fname);
+{$ELSE}
+  //e_LogWriteLn('findDiskWad00: fname=<' + fname + '>');
   if (findFileCI(fname)) then begin result := fname; exit; end;
   origExt := getFilenameExt(fname);
   fname := forceFilenameExt(fname, '');
-  //writeln(' findDiskWad01: fname=<', fname, '>; origExt=<', origExt, '>');
+  //e_LogWriteLn(' findDiskWad01: fname=<' + fname + '>; origExt=<' + origExt + '>');
   for newExt in fileExtensions do
   begin
-    //writeln(' findDiskWad02: fname=<', fname, '>; origExt=<', origExt, '>; newExt=<', newExt, '>');
+    //e_LogWriteLn(' findDiskWad02: fname=<' + fname + '>; origExt=<' + origExt + '>; newExt=<' + newExt + '>');
     if (StrEquCI1251(newExt, origExt)) then
     begin
-      //writeln('   SKIP');
+      //e_LogWriteLn('   SKIP');
       continue;
     end;
     result := fname+newExt;
     if (findFileCI(result)) then exit;
   end;
   result := '';
+{$ENDIF}
 end;
-
 
 function openDiskFileRO (pathname: AnsiString): TStream;
 begin
+  pathname := FixFileName(pathname);
   if not findFileCI(pathname) then raise Exception.Create('can''t open file "'+pathname+'"');
   result := TFileStream.Create(pathname, fmOpenRead or {fmShareDenyWrite}fmShareDenyNone);
 end;
@@ -1167,6 +1189,7 @@ function createDiskFile (pathname: AnsiString): TStream;
 var
   path: AnsiString;
 begin
+  pathname := FixFileName(pathname);
   path := ExtractFilePath(pathname);
   if length(path) > 0 then
   begin
