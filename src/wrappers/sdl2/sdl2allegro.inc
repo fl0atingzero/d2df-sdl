@@ -10,9 +10,6 @@ interface
   {$I sdlscancode.inc}
 
   const
-    DEFAULT_DEPTH = 8;
-
-  const
     SDL_HAT_CENTERED  = $00;
     SDL_HAT_UP        = $01;
     SDL_HAT_RIGHT     = $02;
@@ -298,6 +295,7 @@ interface
 
   var
     sdl2allegro_screen: PBITMAP;
+    sdl2allegro_bpp: Integer;
 
   /// FUNCTIONS ///
 
@@ -369,7 +367,7 @@ implementation
     {$IFDEF GO32V2}
       go32,
     {$ENDIF}
-    e_Log, SysUtils, ctypes;
+    e_Log, g_options, SysUtils, ctypes;
 
   const
     maxKeyBuffer = 64;
@@ -923,7 +921,8 @@ implementation
       mode := GFX_AUTODETECT_WINDOWED;
 {$ENDIF}
 
-    set_color_depth(DEFAULT_DEPTH);
+    sdl2allegro_bpp := gBPP;
+    set_color_depth(sdl2allegro_bpp);
     if set_gfx_mode(mode, w, h, 0, 0) = 0 then
     begin
       new(window);
@@ -957,7 +956,7 @@ implementation
       mode := GFX_AUTODETECT_WINDOWED;
 {$ENDIF}
 
-    set_color_depth(DEFAULT_DEPTH);
+    set_color_depth(sdl2allegro_bpp);
     if set_gfx_mode(mode, window.w, window.h, 0, 0) = 0 then
     begin
      if sdl2allegro_screen <> nil then
@@ -976,7 +975,8 @@ implementation
   begin
     e_LogWritefln('SDL_SetWindowSize %s %s', [w, h]);
     if window = nil then exit;
-    set_color_depth(DEFAULT_DEPTH);
+
+    set_color_depth(sdl2allegro_bpp);
     if set_gfx_mode(window.mode, w, h, 0, 0) = 0 then
     begin
       if sdl2allegro_screen <> nil then

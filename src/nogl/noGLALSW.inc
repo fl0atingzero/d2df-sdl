@@ -200,7 +200,7 @@ implementation
     BLEND_DEFAULT:
       begin
         (* FIX texture colorize *)
-        if DEFAULT_DEPTH <= 8 then
+        if sdl2allegro_bpp <= 8 then
         begin
           drawing_mode(DRAW_MODE_SOLID, nil, 0, 0)
         end
@@ -663,7 +663,7 @@ implementation
     p := pixels;
     if format = GL_RGBA then
     begin
-      if DEFAULT_DEPTH <= 8 then
+      if sdl2allegro_bpp <= 8 then
         trans := 0
       else
         trans := makeacol(255, 0, 255, 0);
@@ -710,7 +710,7 @@ implementation
     p := pixels;
     if format = GL_RGBA then
     begin
-      if DEFAULT_DEPTH <= 8 then
+      if sdl2allegro_bpp <= 8 then
         trans := 0
       else
         trans := makeacol(255, 0, 255, 0);

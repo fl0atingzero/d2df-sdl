@@ -111,10 +111,14 @@ var
 begin
   menu := TGUIMenu(g_GUI_GetWindow('OptionsVideoMenu').GetControl('mOptionsVideoMenu'));
 
-  if TGUISwitch(menu.GetControl('swBPP')).ItemIndex = 0 then
-    gBPP := 16
-  else
-    gBPP := 32;
+  case TGUISwitch(menu.GetControl('swBPP')).ItemIndex of
+    0: gBPP := 8;
+    1: gBPP := 15;
+    2: gBPP := 16;
+    3: gBPP := 24;
+    4: gBPP := 32;
+  else gBPP := 32
+  end;
 
   ovs := gVSync;
   gVSync := TGUISwitch(menu.GetControl('swVSync')).ItemIndex = 0;
@@ -330,10 +334,14 @@ begin
   menu := TGUIMenu(g_GUI_GetWindow('OptionsVideoMenu').GetControl('mOptionsVideoMenu'));
 
   with TGUISwitch(menu.GetControl('swBPP')) do
-    if gBPP = 16 then
-      ItemIndex := 0
-    else
-      ItemIndex := 1;
+    case gBPP of
+      8: ItemIndex := 0;
+      15: ItemIndex := 1;
+      16: ItemIndex := 2;
+      24: ItemIndex := 3;
+      32: ItemIndex := 4;
+    else ItemIndex := 4
+    end;
 
   with TGUISwitch(menu.GetControl('swTextureFilter')) do
     if gTextureFilter then ItemIndex := 0 else ItemIndex := 1;
@@ -2513,7 +2521,10 @@ begin
     with AddSwitch(_lc[I_MENU_VIDEO_BPP]) do
     begin
       Name := 'swBPP';
+      AddItem('8');
+      AddItem('15');
       AddItem('16');
+      AddItem('24');
       AddItem('32');
     end;
     with AddSwitch(_lc[I_MENU_VIDEO_VSYNC]) do
