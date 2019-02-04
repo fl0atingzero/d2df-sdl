@@ -402,6 +402,136 @@ implementation
       #00, #00, #00, #00, '@', #00, ':', #00, '=', #00, ';', #00, #00, #00, #00, #00,
       #00, #00, #00, #00, #00, #00, #00, #00, #00, #00, #00, #00, #00, #00, #00, #00
     );
+    s2sa: array [0..KEY_MAX] of Integer = (
+      SDL_SCANCODE_UNKNOWN,
+      SDL_SCANCODE_A,
+      SDL_SCANCODE_B,
+      SDL_SCANCODE_C,
+      SDL_SCANCODE_D,
+      SDL_SCANCODE_E,
+      SDL_SCANCODE_F,
+      SDL_SCANCODE_G,
+      SDL_SCANCODE_H,
+      SDL_SCANCODE_I,
+      SDL_SCANCODE_J,
+      SDL_SCANCODE_K,
+      SDL_SCANCODE_L,
+      SDL_SCANCODE_M,
+      SDL_SCANCODE_N,
+      SDL_SCANCODE_O,
+      SDL_SCANCODE_P,
+      SDL_SCANCODE_Q,
+      SDL_SCANCODE_R,
+      SDL_SCANCODE_S,
+      SDL_SCANCODE_T,
+      SDL_SCANCODE_U,
+      SDL_SCANCODE_V,
+      SDL_SCANCODE_W,
+      SDL_SCANCODE_X,
+      SDL_SCANCODE_Y,
+      SDL_SCANCODE_Z,
+      SDL_SCANCODE_0,
+      SDL_SCANCODE_1,
+      SDL_SCANCODE_2,
+      SDL_SCANCODE_3,
+      SDL_SCANCODE_4,
+      SDL_SCANCODE_5,
+      SDL_SCANCODE_6,
+      SDL_SCANCODE_7,
+      SDL_SCANCODE_8,
+      SDL_SCANCODE_9,
+      SDL_SCANCODE_KP_0,
+      SDL_SCANCODE_KP_1,
+      SDL_SCANCODE_KP_2,
+      SDL_SCANCODE_KP_3,
+      SDL_SCANCODE_KP_4,
+      SDL_SCANCODE_KP_5,
+      SDL_SCANCODE_KP_6,
+      SDL_SCANCODE_KP_7,
+      SDL_SCANCODE_KP_8,
+      SDL_SCANCODE_KP_9,
+      SDL_SCANCODE_F1,
+      SDL_SCANCODE_F2,
+      SDL_SCANCODE_F3,
+      SDL_SCANCODE_F4,
+      SDL_SCANCODE_F5,
+      SDL_SCANCODE_F6,
+      SDL_SCANCODE_F7,
+      SDL_SCANCODE_F8,
+      SDL_SCANCODE_F9,
+      SDL_SCANCODE_F10,
+      SDL_SCANCODE_F11,
+      SDL_SCANCODE_F12,
+      SDL_SCANCODE_ESCAPE,
+      SDL_SCANCODE_GRAVE,
+      SDL_SCANCODE_MINUS,
+      SDL_SCANCODE_EQUALS,
+      SDL_SCANCODE_BACKSPACE,
+      SDL_SCANCODE_TAB,
+      SDL_SCANCODE_LEFTBRACKET,
+      SDL_SCANCODE_RIGHTBRACKET,
+      SDL_SCANCODE_RETURN,
+      SDL_SCANCODE_SEMICOLON,
+      SDL_SCANCODE_APOSTROPHE,
+      SDL_SCANCODE_BACKSLASH,
+      SDL_SCANCODE_NONUSHASH,
+      SDL_SCANCODE_COMMA,
+      SDL_SCANCODE_UNKNOWN, (* !!! KEY_STOP *)
+      SDL_SCANCODE_SLASH,
+      SDL_SCANCODE_SPACE,
+      SDL_SCANCODE_INSERT,
+      SDL_SCANCODE_DELETE,
+      SDL_SCANCODE_HOME,
+      SDL_SCANCODE_END,
+      SDL_SCANCODE_PAGEUP,
+      SDL_SCANCODE_PAGEDOWN,
+      SDL_SCANCODE_LEFT,
+      SDL_SCANCODE_RIGHT,
+      SDL_SCANCODE_UP,
+      SDL_SCANCODE_DOWN,
+      SDL_SCANCODE_KP_DIVIDE,
+      SDL_SCANCODE_KP_MULTIPLY,
+      SDL_SCANCODE_KP_MINUS,
+      SDL_SCANCODE_KP_PLUS,
+      SDL_SCANCODE_KP_PERIOD,
+      SDL_SCANCODE_KP_ENTER,
+      SDL_SCANCODE_PRINTSCREEN,
+      SDL_SCANCODE_PAUSE,
+      SDL_SCANCODE_UNKNOWN, (* !!! KEY_ABNT_C1 *)
+      SDL_SCANCODE_INTERNATIONAL3, (* ??? KEY_YEN *)
+      SDL_SCANCODE_LANG3, (* ??? KEY_KANA *)
+      SDL_SCANCODE_UNKNOWN, (* !!! KEY_CONVERT *)
+      SDL_SCANCODE_UNKNOWN, (* !!! KEY_NOCONVERT *)
+      SDL_SCANCODE_KP_AT,
+      SDL_SCANCODE_UNKNOWN, (* !!! KEY_CIRCUMFLEX *)
+      SDL_SCANCODE_KP_COLON,
+      SDL_SCANCODE_UNKNOWN, (* !!! KEY_KANJI *)
+      SDL_SCANCODE_KP_EQUALS,
+      SDL_SCANCODE_UNKNOWN, (* !!! KEY_BACKQUOTE *)
+      SDL_SCANCODE_SEMICOLON,
+      SDL_SCANCODE_LGUI,
+      SDL_SCANCODE_UNKNOWN, (* !!! KEY_UNKNOWN1 *)
+      SDL_SCANCODE_UNKNOWN, (* !!! KEY_UNKNOWN2 *)
+      SDL_SCANCODE_UNKNOWN, (* !!! KEY_UNKNOWN3 *)
+      SDL_SCANCODE_UNKNOWN, (* !!! KEY_UNKNOWN4 *)
+      SDL_SCANCODE_UNKNOWN, (* !!! KEY_UNKNOWN5 *)
+      SDL_SCANCODE_UNKNOWN, (* !!! KEY_UNKNOWN6 *)
+      SDL_SCANCODE_UNKNOWN, (* !!! KEY_UNKNOWN7 *)
+      SDL_SCANCODE_UNKNOWN, (* !!! KEY_UNKNOWN8 *)
+      SDL_SCANCODE_LSHIFT,
+      SDL_SCANCODE_RSHIFT,
+      SDL_SCANCODE_LCTRL,
+      SDL_SCANCODE_RCTRL,
+      SDL_SCANCODE_LALT,
+      SDL_SCANCODE_RALT,
+      SDL_SCANCODE_LGUI,
+      SDL_SCANCODE_RGUI,
+      SDL_SCANCODE_MODE, (* ??? KEY_MENU *)
+      SDL_SCANCODE_SCROLLLOCK,
+      SDL_SCANCODE_NUMLOCKCLEAR,
+      SDL_SCANCODE_CAPSLOCK,
+      SDL_SCANCODE_UNKNOWN (* KEY_MAX *)
+    );
 
   function IsEmptyKeyboard: Boolean;
   begin
@@ -483,7 +613,134 @@ implementation
 
   function SDL_GetScancodeName(scancode: TSDL_ScanCode): PAnsiChar;
   begin
-    result := ''
+    case scancode of
+      SDL_SCANCODE_A: result := 'A';
+      SDL_SCANCODE_B: result := 'B';
+      SDL_SCANCODE_C: result := 'C';
+      SDL_SCANCODE_D: result := 'D';
+      SDL_SCANCODE_E: result := 'E';
+      SDL_SCANCODE_F: result := 'F';
+      SDL_SCANCODE_G: result := 'G';
+      SDL_SCANCODE_H: result := 'H';
+      SDL_SCANCODE_I: result := 'I';
+      SDL_SCANCODE_J: result := 'J';
+      SDL_SCANCODE_K: result := 'K';
+      SDL_SCANCODE_L: result := 'L';
+      SDL_SCANCODE_M: result := 'M';
+      SDL_SCANCODE_N: result := 'N';
+      SDL_SCANCODE_O: result := 'O';
+      SDL_SCANCODE_P: result := 'P';
+      SDL_SCANCODE_Q: result := 'Q';
+      SDL_SCANCODE_R: result := 'R';
+      SDL_SCANCODE_S: result := 'S';
+      SDL_SCANCODE_T: result := 'T';
+      SDL_SCANCODE_U: result := 'U';
+      SDL_SCANCODE_V: result := 'V';
+      SDL_SCANCODE_W: result := 'W';
+      SDL_SCANCODE_X: result := 'X';
+      SDL_SCANCODE_Y: result := 'Y';
+      SDL_SCANCODE_Z: result := 'Z';
+      SDL_SCANCODE_0: result := '0';
+      SDL_SCANCODE_1: result := '1';
+      SDL_SCANCODE_2: result := '2';
+      SDL_SCANCODE_3: result := '3';
+      SDL_SCANCODE_4: result := '4';
+      SDL_SCANCODE_5: result := '5';
+      SDL_SCANCODE_6: result := '6';
+      SDL_SCANCODE_7: result := '7';
+      SDL_SCANCODE_8: result := '8';
+      SDL_SCANCODE_9: result := '9';
+      SDL_SCANCODE_RETURN: result := 'Return';
+      SDL_SCANCODE_ESCAPE: result := 'Escape';
+      SDL_SCANCODE_BACKSPACE: result := 'Backspace';
+      SDL_SCANCODE_TAB: result := 'Tab';
+      SDL_SCANCODE_SPACE: result := 'Space';
+      SDL_SCANCODE_MINUS: result := '-';
+      SDL_SCANCODE_EQUALS: result := '=';
+      SDL_SCANCODE_LEFTBRACKET: result := '[';
+      SDL_SCANCODE_RIGHTBRACKET: result := ']';
+      SDL_SCANCODE_BACKSLASH: result := '\';
+      SDL_SCANCODE_SEMICOLON: result := ';';
+      SDL_SCANCODE_APOSTROPHE: result := '''';
+      SDL_SCANCODE_GRAVE: result := '`';
+      SDL_SCANCODE_COMMA: result := ',';
+      SDL_SCANCODE_PERIOD: result := '.';
+      SDL_SCANCODE_SLASH: result := '/';
+      SDL_SCANCODE_CAPSLOCK: result := 'CapsLock';
+      SDL_SCANCODE_F1: result := 'F1';
+      SDL_SCANCODE_F2: result := 'F2';
+      SDL_SCANCODE_F3: result := 'F3';
+      SDL_SCANCODE_F4: result := 'F4';
+      SDL_SCANCODE_F5: result := 'F5';
+      SDL_SCANCODE_F6: result := 'F6';
+      SDL_SCANCODE_F7: result := 'F7';
+      SDL_SCANCODE_F8: result := 'F8';
+      SDL_SCANCODE_F9: result := 'F9';
+      SDL_SCANCODE_F10: result := 'F10';
+      SDL_SCANCODE_F11: result := 'F11';
+      SDL_SCANCODE_F12: result := 'F12';
+      SDL_SCANCODE_PRINTSCREEN: result := 'PrintScreen';
+      SDL_SCANCODE_SCROLLLOCK: result := 'ScrollLock';
+      SDL_SCANCODE_PAUSE: result := 'Pause';
+      SDL_SCANCODE_INSERT: result := 'Insert';
+      SDL_SCANCODE_HOME: result := 'Home';
+      SDL_SCANCODE_PAGEUP: result := 'PageUp';
+      SDL_SCANCODE_DELETE: result := 'Delete';
+      SDL_SCANCODE_END: result := 'End';
+      SDL_SCANCODE_PAGEDOWN: result := 'PageDown';
+      SDL_SCANCODE_RIGHT: result := 'Right';
+      SDL_SCANCODE_LEFT: result := 'Left';
+      SDL_SCANCODE_DOWN: result := 'Down';
+      SDL_SCANCODE_UP: result := 'Up';
+      SDL_SCANCODE_NUMLOCKCLEAR: result := 'Numlock';
+      SDL_SCANCODE_KP_DIVIDE: result := 'Keypad /';
+      SDL_SCANCODE_KP_MULTIPLY: result := 'Keypad *';
+      SDL_SCANCODE_KP_MINUS: result := 'Keypad -';
+      SDL_SCANCODE_KP_PLUS: result := 'Keypad +';
+      SDL_SCANCODE_KP_ENTER: result := 'Keypad Enter';
+      SDL_SCANCODE_KP_1: result := 'Keypad 1';
+      SDL_SCANCODE_KP_2: result := 'Keypad 2';
+      SDL_SCANCODE_KP_3: result := 'Keypad 3';
+      SDL_SCANCODE_KP_4: result := 'Keypad 4';
+      SDL_SCANCODE_KP_5: result := 'Keypad 5';
+      SDL_SCANCODE_KP_6: result := 'Keypad 6';
+      SDL_SCANCODE_KP_7: result := 'Keypad 7';
+      SDL_SCANCODE_KP_8: result := 'Keypad 8';
+      SDL_SCANCODE_KP_9: result := 'Keypad 9';
+      SDL_SCANCODE_KP_0: result := 'Keypad 0';
+      SDL_SCANCODE_KP_PERIOD: result := 'Keypad .';
+      SDL_SCANCODE_APPLICATION: result := 'Application';
+      SDL_SCANCODE_POWER: result := 'Power';
+      SDL_SCANCODE_KP_EQUALS: result := 'Keypad =';
+      (* !!! F1x/F2x and multimedia ... *)
+      SDL_SCANCODE_KP_COMMA: result := 'Keypad ,';
+      SDL_SCANCODE_KP_EQUALSAS400: result := 'Keypad = (AS400)';
+      SDL_SCANCODE_ALTERASE: result := 'AltErase';
+      SDL_SCANCODE_SYSREQ: result := 'SysReq';
+      SDL_SCANCODE_CANCEL: result := 'Cancel';
+      SDL_SCANCODE_CLEAR: result := 'Clear';
+      SDL_SCANCODE_PRIOR: result := 'Prior';
+      SDL_SCANCODE_RETURN2: result := 'Return';
+      SDL_SCANCODE_SEPARATOR: result := 'Separator';
+      SDL_SCANCODE_OUT: result := 'Out';
+      SDL_SCANCODE_OPER: result := 'Oper';
+      SDL_SCANCODE_CLEARAGAIN: result := 'Clear / Again';
+      SDL_SCANCODE_CRSEL: result := 'CrSel';
+      SDL_SCANCODE_EXSEL: result := 'ExSel';
+      (* !!! Additional KP *)
+      SDL_SCANCODE_LCTRL: result := 'Left Ctrl';
+      SDL_SCANCODE_LSHIFT: result := 'Left Shift';
+      SDL_SCANCODE_LALT: result := 'Left Alt';
+      SDL_SCANCODE_LGUI: result := 'Left GUI';
+      SDL_SCANCODE_RCTRL: result := 'Right Ctrl';
+      SDL_SCANCODE_RSHIFT: result := 'Right Shift';
+      SDL_SCANCODE_RALT: result := 'Right Alt';
+      SDL_SCANCODE_RGUI: result := 'Right GUI';
+      SDL_SCANCODE_MODE: result := 'ModeSwitch';
+      (* !!! ... *)
+    else
+      result := ''
+    end
   end;
 
   function SDL_IsTextInputActive: TSDL_Bool;
@@ -576,14 +833,12 @@ implementation
 
   function SDL_GetPerformanceCounter: UInt64;
   begin
-    (* TODO *)
-    result := ticks;
+    result := ticks (* !!! *)
   end;
 
   function SDL_GetPerformanceFrequency: UInt64;
   begin
-    (* TODO *)
-    result := 1
+    result := 1 (* !!! *)
   end;
 
   procedure SDL_Delay(ms: UInt32);
@@ -602,7 +857,7 @@ implementation
   begin
     e_LogWritefln('SDL_GetDesktopDisplayMode %s', [displayIndex]);
     result := -1;
-    mode.format := SDL_PIXELFORMAT_UNKNOWN; (* FIXIT *)
+    mode.format := SDL_PIXELFORMAT_UNKNOWN; (* !!! *)
     mode.refresh_rate := 0;
     mode.driverdata := nil;
     if get_desktop_resolution(@mode.w, @mode.h) = 0 then
@@ -837,87 +1092,6 @@ implementation
     end
   end;
 
-  function allegro_to_sdl_scancode (x: Integer): Integer;
-  begin
-    x := x and $7F;
-    case x of
-      KEY_A..KEY_Z: result := SDL_SCANCODE_A + (x - KEY_A);
-      KEY_0..KEY_0: result := SDL_SCANCODE_0 + (x - KEY_0);
-      KEY_0_PAD: result := SDL_SCANCODE_KP_0;
-      KEY_1_PAD..KEY_9_PAD: result := SDL_SCANCODE_KP_1 + (x - KEY_1_PAD);
-      KEY_F1..KEY_F12: result := SDL_SCANCODE_F1 + (x - KEY_F1);
-      KEY_ESC: result := SDL_SCANCODE_ESCAPE;
-      KEY_TILDE: result := SDL_SCANCODE_GRAVE;
-      KEY_MINUS: result := SDL_SCANCODE_MINUS;
-      KEY_EQUALS: result := SDL_SCANCODE_EQUALS;
-      KEY_BACKSPACE: result := SDL_SCANCODE_BACKSPACE;
-      KEY_TAB: result := SDL_SCANCODE_TAB;
-      KEY_OPENBRACE: result := SDL_SCANCODE_LEFTBRACKET;
-      KEY_CLOSEBRACE: result := SDL_SCANCODE_RIGHTBRACKET;
-      KEY_ENTER: result := SDL_SCANCODE_RETURN;
-      KEY_COLON: result := SDL_SCANCODE_SEMICOLON;
-      KEY_QUOTE: result := SDL_SCANCODE_APOSTROPHE;
-      KEY_BACKSLASH: result := SDL_SCANCODE_BACKSLASH;
-      KEY_BACKSLASH2: result := SDL_SCANCODE_NONUSHASH; (* ??? *)
-      KEY_COMMA: result := SDL_SCANCODE_COMMA;
-      (*KEY_STOP: result :=;*) (* ??? *)
-      KEY_SLASH: result := SDL_SCANCODE_SLASH;
-      KEY_SPACE: result := SDL_SCANCODE_SPACE;
-      KEY_INSERT: result := SDL_SCANCODE_INSERT;
-      KEY_DEL: result := SDL_SCANCODE_DELETE;
-      KEY_HOME: result := SDL_SCANCODE_HOME;
-      KEY_END: result := SDL_SCANCODE_END;
-      KEY_PGUP: result := SDL_SCANCODE_PAGEUP;
-      KEY_PGDN: result := SDL_SCANCODE_PAGEDOWN;
-      KEY_LEFT: result := SDL_SCANCODE_LEFT;
-      KEY_RIGHT: result := SDL_SCANCODE_RIGHT;
-      KEY_UP: result := SDL_SCANCODE_UP;
-      KEY_DOWN: result := SDL_SCANCODE_DOWN;
-      KEY_SLASH_PAD: result := SDL_SCANCODE_KP_DIVIDE;
-      KEY_ASTERISK: result := SDL_SCANCODE_KP_MULTIPLY;
-      KEY_MINUS_PAD: result := SDL_SCANCODE_KP_MINUS;
-      KEY_PLUS_PAD: result := SDL_SCANCODE_KP_PLUS;
-      KEY_DEL_PAD: result := SDL_SCANCODE_KP_PERIOD;
-      KEY_ENTER_PAD: result := SDL_SCANCODE_KP_ENTER;
-      KEY_PRTSCR: result := SDL_SCANCODE_PRINTSCREEN;
-      KEY_PAUSE: result := SDL_SCANCODE_PAUSE;
-      (*KEY_ABNT_C1: result :=;*) (* ??? *)
-      KEY_YEN: result := SDL_SCANCODE_INTERNATIONAL3;
-      KEY_KANA: result := SDL_SCANCODE_LANG3; (* ??? *)
-      (*KEY_CONVERT: result :=;*) (* ??? *)
-      (*KEY_NOCONVERT: result := ;*) (* ??? *)
-      KEY_AT: result := SDL_SCANCODE_KP_AT;
-      (*KEY_CIRCUMFLEX: result :=;*) (* ??? *)
-      KEY_COLON2: result := SDL_SCANCODE_KP_COLON;
-      (*KEY_KANJI: result :=;*) (* ??? *)
-      KEY_EQUALS_PAD: result := SDL_SCANCODE_KP_EQUALS;
-      (*KEY_BACKQUOTE: result :=;*) (* ??? *)
-      KEY_SEMICOLON: result := SDL_SCANCODE_SEMICOLON;
-      KEY_COMMAND: result := SDL_SCANCODE_LGUI;
-      (*KEY_UNKNOWN1: result :=;*)
-      (*KEY_UNKNOWN2: result :=;*)
-      (*KEY_UNKNOWN3: result :=;*)
-      (*KEY_UNKNOWN4: result :=;*)
-      (*KEY_UNKNOWN5: result :=;*)
-      (*KEY_UNKNOWN6: result :=;*)
-      (*KEY_UNKNOWN7: result :=;*)
-      (*KEY_UNKNOWN8: result :=;*)
-      KEY_LSHIFT: result := SDL_SCANCODE_LSHIFT;
-      KEY_RSHIFT: result := SDL_SCANCODE_RSHIFT;
-      KEY_LCONTROL: result := SDL_SCANCODE_LCTRL;
-      KEY_RCONTROL: result := SDL_SCANCODE_RCTRL;
-      KEY_ALT: result := SDL_SCANCODE_LALT;
-      KEY_ALTGR: result := SDL_SCANCODE_RALT;
-      KEY_LWIN: result := SDL_SCANCODE_LGUI;
-      KEY_RWIN: result := SDL_SCANCODE_RGUI;
-      KEY_MENU: result := SDL_SCANCODE_MODE; (* ??? *)
-      KEY_SCRLOCK: result := SDL_SCANCODE_SCROLLLOCK;
-      KEY_NUMLOCK: result := SDL_SCANCODE_NUMLOCKCLEAR;
-      KEY_CAPSLOCK: result := SDL_SCANCODE_CAPSLOCK;
-    else result := SDL_SCANCODE_UNKNOWN
-    end
-  end;
-
   function SDL_PollEvent(event: PSDL_Event): SInt32;
     var alscan: Integer; pressed, shift, caps: Boolean;
   begin
@@ -973,7 +1147,7 @@ implementation
         event.key.state := SDL_RELEASED;
       ****)
       event.key._repeat := 0;
-      event.key.keysym.scancode := allegro_to_sdl_scancode(alscan);
+      event.key.keysym.scancode := s2sa[alscan and $7F];
       event.key.keysym.sym := 0; (* df not use it? *)
       event.key.keysym._mod := 0; (* df not use it? *)
       result := 1;
@@ -1014,7 +1188,7 @@ implementation
   (* HACK: allegro crashes while init without this *)
   var
     __crt0_argv: PPchar; cvar; external;
-    myargv: array [0..255] of Pchar;
+    myargv: array [0..1] of Pchar;
 
   procedure FIX_ARGV;
   begin

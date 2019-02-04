@@ -200,8 +200,15 @@ implementation
     BLEND_DEFAULT:
       begin
         (* FIX texture colorize *)
-        set_saturation_blender(0, 0, 0, 0);
-        drawing_mode(DRAW_MODE_TRANS, nil, 0, 0)
+        if DEFAULT_DEPTH <= 8 then
+        begin
+          drawing_mode(DRAW_MODE_SOLID, nil, 0, 0)
+        end
+        else
+        begin
+          set_color_blender(0, 0, 0, 0);
+          drawing_mode(DRAW_MODE_TRANS, nil, 0, 0)
+        end
       end
     else
       ASSERT(FALSE)
