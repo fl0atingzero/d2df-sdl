@@ -237,11 +237,17 @@ interface
     PALETTE = array [0..PAL_SIZE - 1] of RGB;
     PPALETTE = ^PALETTE;
 
+    COLOR_MAP_T = record
+      data: array [0..PAL_SIZE - 1, 0..PAL_SIZE - 1] of cuchar;
+    end;
+    PCOLOR_MAP_T = ^COLOR_MAP_T;
+
    KeyboardCallback = procedure (scancode: cint); LibraryLibAllegroDecl;   
    AtExitCallback = procedure; LibraryLibAllegroDecl;
    AtExitFunction = function (func: AtExitCallback): cint; LibraryLibAllegroDecl;
    TimerIntCallback = procedure; LibraryLibAllegroDecl;
    QuitCallback = procedure; LibraryLibAllegroDecl;
+   CreateTableCallback = procedure (pos: cint); LibraryLibAllegroDecl;
 
   var
     allegro_id: array [0..ALLEGRO_ERROR_SIZE] of char; LibraryLibAllegroVar;
@@ -253,6 +259,7 @@ interface
     default_palette: PALETTE; LibraryLibAllegroVar;
     _current_palette: PALETTE; LibraryLibAllegroVar;
     key_shifts: cint; LibraryLibAllegroVar;
+    color_map: PCOLOR_MAP_T; LibraryLibAllegroVar;
 
   function get_desktop_resolution (width, height: Pcint): cint; LibraryLibAllegroImp;
   function get_gfx_mode_list (card: cint): PGFX_MODE_LIST; LibraryLibAllegroImp;
@@ -309,6 +316,32 @@ interface
 
   function scancode_to_ascii (scancode: cint): cint; LibraryLibAllegroImp;
   function scancode_to_name (scancode: cint): PChar; LibraryLibAllegroImp;
+
+  procedure drawing_mode (mode: cint; pattern: PBITMAP; x_anchor, y_anchor: cint); LibraryLibAllegroImp;
+
+  procedure set_trans_blender (r, g, b, a: cint); LibraryLibAllegroImp;
+  procedure set_alpha_blender; LibraryLibAllegroImp;
+  procedure set_write_alpha_blender; LibraryLibAllegroImp;
+  procedure set_add_blender (r, g, b, a: cint); LibraryLibAllegroImp;
+  procedure set_burn_blender (r, g, b, a: cint); LibraryLibAllegroImp;
+  procedure set_color_blender (r, g, b, a: cint); LibraryLibAllegroImp;
+  procedure set_difference_blender (r, g, b, a: cint); LibraryLibAllegroImp;
+  procedure set_dissolve_blender (r, g, b, a: cint); LibraryLibAllegroImp;
+  procedure set_dodge_blender (r, g, b, a: cint); LibraryLibAllegroImp;
+  procedure set_hue_blender (r, g, b, a: cint); LibraryLibAllegroImp;
+  procedure set_invert_blender (r, g, b, a: cint); LibraryLibAllegroImp;
+  procedure set_luminance_blender (r, g, b, a: cint); LibraryLibAllegroImp;
+  procedure set_multiply_blender (r, g, b, a: cint); LibraryLibAllegroImp;
+  procedure set_saturation_blender (r, g, b, a: cint); LibraryLibAllegroImp;
+  procedure set_screen_blender (r, g, b, a: cint); LibraryLibAllegroImp;
+
+  function getr (col: cint): cint; LibraryLibAllegroImp;
+  function getg (col: cint): cint; LibraryLibAllegroImp;
+  function getb (col: cint): cint; LibraryLibAllegroImp;
+  function geta (col: cint): cint; LibraryLibAllegroImp;
+
+  procedure create_light_table (table: PCOLOR_MAP_T; const pal: PALETTE; r, g, b: cint; callback: CreateTableCallback); LibraryLibAllegroImp;
+  procedure create_trans_table (table: PCOLOR_MAP_T; const pal: PALETTE; r, g, b: cint; callback: CreateTableCallback); LibraryLibAllegroImp;
 
   (* MACRO *)
   function install_allegro (system_id: cint; errno_ptr: Pcint; atexit_ptr: AtExitFunction): cint; inline;

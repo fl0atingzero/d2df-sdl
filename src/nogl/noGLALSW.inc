@@ -11,6 +11,12 @@ implementation
     ValPerCoord = 2;
     StackSize = 16;
 
+    BLEND_BLEND = 0;
+    BLEND_DARKER = 1;
+    BLEND_FILTER = 2;
+    BLEND_INVERT = 3;
+    BLEND_DEFAULT = 5;
+
   type
     TArrayFloat = array of GLfloat;
     TArrayInteger = array of Integer;
@@ -40,6 +46,14 @@ implementation
     vpx, vpy: Integer;
     pointSize: Integer;
     matrixMode: GLenum;
+    blendMode: Integer;
+
+    globalTransTable: COLOR_MAP_T;
+    redTransTable: COLOR_MAP_T;
+    greenTransTable: COLOR_MAP_T;
+    blueTransTable: COLOR_MAP_T;
+    darkTransTable: COLOR_MAP_T;
+    lightTransTable: COLOR_MAP_T;
 
   function AddTexture: Integer;
     var i: Integer;
@@ -126,6 +140,72 @@ implementation
 
   procedure glBlendFunc(sfactor, dfactor: GLenum);
   begin
+    if (sfactor = GL_SRC_ALPHA) and (dfactor = GL_ONE) then blendMode := BLEND_BLEND
+    else if (sfactor = GL_ZERO) and (dfactor = GL_SRC_ALPHA) then blendMode := BLEND_DARKER
+    else if (sfactor = GL_DST_COLOR) and (dfactor = GL_SRC_COLOR) then blendMode := BLEND_FILTER
+    else if (sfactor = GL_ONE_MINUS_DST_COLOR) and (dfactor = GL_ZERO) then blendMode := BLEND_INVERT
+    else if (sfactor = GL_SRC_ALPHA) and (dfactor = GL_ONE_MINUS_SRC_ALPHA) then blendMode := BLEND_DEFAULT
+    else ASSERT(FALSE)
+  end;
+
+  procedure SetupBlendColor (col: cint);
+    var r, g, b, a: cint;
+  begin
+    //set_trans_blender(r, g, b, a);
+    //set_add_blender(r, g, b, a);
+    //set_burn_blender(r, g, b, a);
+    //set_color_blender(r, g, b, a);
+    //set_difference_blender(r, g, b, a);
+    //set_dissolve_blender(r, g, b, a);
+    //set_dodge_blender(r, g, b, a);
+    //set_hue_blender(r, g, b, a);
+    //set_invert_blender(r, g, b, a);
+    //set_luminance_blender(r, g, b, a);
+    //set_multiply_blender(r, g, b, a);
+    //set_saturation_blender(r, g, b, a);
+    //set_screen_blender(r, g, b, a);
+    r := getr(col);
+    g := getg(col);
+    b := getb(col);
+    a := geta(col);
+    color_map := @globalTransTable;
+    case blendMode of
+    BLEND_BLEND:
+      begin
+        color_map := @lightTransTable;
+        set_add_blender(r, g, b, a);
+        drawing_mode(DRAW_MODE_TRANS, nil, 0, 0)
+      end;
+    BLEND_DARKER:
+      begin
+        color_map := @darkTransTable;
+        set_multiply_blender(0, 0, 0, 255 - a);
+        drawing_mode(DRAW_MODE_TRANS, nil, 0, 0)
+      end;
+    BLEND_FILTER:
+      begin
+        set_luminance_blender(0, 0, 0, 255);
+        if r <> 0 then
+          color_map := @redTransTable
+        else if g <> 0 then
+          color_map := @greenTransTable
+        else if b <> 0 then
+          color_map := @blueTransTable;
+        drawing_mode(DRAW_MODE_TRANS, nil, 0, 0)
+      end;
+    BLEND_INVERT:
+      begin
+        drawing_mode(DRAW_MODE_XOR, nil, 0, 0)
+      end;
+    BLEND_DEFAULT:
+      begin
+        (* FIX texture colorize *)
+        set_saturation_blender(0, 0, 0, 0);
+        drawing_mode(DRAW_MODE_TRANS, nil, 0, 0)
+      end
+    else
+      ASSERT(FALSE)
+    end
   end;
 
   procedure glPointSize(size: GLfloat);
@@ -179,6 +259,8 @@ implementation
     offx := vpx + stack[stack_ptr].x;
     offy := vpy + stack[stack_ptr].y;
     angle := stack[stack_ptr].a;
+
+    drawing_mode(DRAW_MODE_SOLID, nil, 0, 0);
 
     case cmds.mode of
     GL_POINTS:
@@ -332,6 +414,7 @@ implementation
             get_clip_rect(sdl2allegro_screen, oldx0, oldy0, oldx1, oldy1);
             set_clip_rect(sdl2allegro_screen, max(oldx0, offx + x0), max(oldy0, offy + y0), min(oldx1, offx + x1), min(oldy1, offy + y1));
 
+            SetupBlendColor(ccol);
             if angle = 0 then
               for j := 0 to (y1 - y0 + h - 1) div h - 1 do
                 for k := 0 to (x1 - x0 + w - 1) div w - 1 do
@@ -351,10 +434,14 @@ implementation
         begin
           assert(Length(cmds.c) * 2 = Length(cmds.v)); (* not enough colors *)
           for i := 0 to Length(cmds.v) div 8 - 1 do
+          begin
+            SetupBlendColor(cmds.c[i * 4]);
             rectfill(sdl2allegro_screen, offx + cmds.v[i * 8], offy + cmds.v[i * 8 + 1], offx + cmds.v[i * 8 + 4], offy + cmds.v[i * 8 + 5], cmds.c[i * 4])
+          end
         end
         else
         begin
+          SetupBlendColor(ccol);
           for i := 0 to Length(cmds.v) div 8 - 1 do
             rectfill(sdl2allegro_screen, offx + cmds.v[i * 8], offy + cmds.v[i * 8 + 1], offx + cmds.v[i * 8 + 4], offy + cmds.v[i * 8 + 5], ccol)
         end
@@ -652,7 +739,14 @@ implementation
 
   procedure nogl_Init;
   begin
-    cmds.mode := GL_INVALID_ENUM
+    cmds.mode := GL_INVALID_ENUM;
+    create_trans_table(@globalTransTable, default_palette, 255, 255, 255, nil);
+    create_trans_table(@redTransTable, default_palette, 0, 255, 255, nil);
+    create_trans_table(@greenTransTable, default_palette, 255, 0, 255, nil);
+    create_trans_table(@blueTransTable, default_palette, 255, 255, 0, nil);
+    create_trans_table(@darkTransTable, default_palette, 191, 191, 191, nil);
+    create_trans_table(@lightTransTable, default_palette, 64, 64, 64, nil);
+    color_map := @globalTransTable;
   end;
 
   procedure nogl_Quit;
