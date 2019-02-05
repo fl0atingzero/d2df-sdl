@@ -230,6 +230,45 @@ interface
       mode: PGFX_MODE;
     end;
 
+    PGFX_DRIVER_T = ^GFX_DRIVER_T;
+    GFX_DRIVER_T = record
+      id: cint;
+      name: PChar;
+      desc: PChar;
+      ascii_name: PChar;
+
+      init: Pointer;
+      exit: Pointer;
+      scroll: Pointer;
+      vsync: Pointer;
+      set_palette: Pointer;
+      request_scroll: Pointer;
+      poll_scroll: Pointer;
+      enable_triple_buffer: Pointer;
+      create_video_bitmap: Pointer;
+      destroy_video_bitmap: Pointer;
+      show_video_bitmap: Pointer;
+      request_video_bitmap: Pointer;
+      create_system_bitmap: Pointer;
+      destroy_system_bitmap: Pointer;
+      set_mouse_sprite: Pointer;
+      show_mouse: Pointer;
+      hide_mouse: Pointer;
+      move_mouse: Pointer;
+      drawing_mode: Pointer;
+      save_video_state: Pointer;
+      restore_video_state: Pointer;
+      set_blender_mode: Pointer;
+      fetch_mode_list: function (): PGFX_MODE_LIST; cdecl;
+      w, h: cint;
+      linear: cint;
+      bank_size: clong;
+      bank_gran: clong;
+      vid_mem: clong;
+      vid_phys_base: clong;
+      windowed: cint;
+    end;
+
     RGB = record
       r, g, b, filler: cuchar;
     end;
@@ -260,6 +299,7 @@ interface
     _current_palette: PALETTE; LibraryLibAllegroVar;
     key_shifts: cint; LibraryLibAllegroVar;
     color_map: PCOLOR_MAP_T; LibraryLibAllegroVar;
+    gfx_driver: PGFX_DRIVER_T; LibraryLibAllegroVar;
 
   function get_desktop_resolution (width, height: Pcint): cint; LibraryLibAllegroImp;
   function get_gfx_mode_list (card: cint): PGFX_MODE_LIST; LibraryLibAllegroImp;
@@ -342,6 +382,9 @@ interface
 
   procedure create_light_table (table: PCOLOR_MAP_T; const pal: PALETTE; r, g, b: cint; callback: CreateTableCallback); LibraryLibAllegroImp;
   procedure create_trans_table (table: PCOLOR_MAP_T; const pal: PALETTE; r, g, b: cint; callback: CreateTableCallback); LibraryLibAllegroImp;
+
+  procedure vsync; LibraryLibAllegroImp;
+  function desktop_color_depth: cint; LibraryLibAllegroImp;
 
   (* MACRO *)
   function install_allegro (system_id: cint; errno_ptr: Pcint; atexit_ptr: AtExitFunction): cint; inline;

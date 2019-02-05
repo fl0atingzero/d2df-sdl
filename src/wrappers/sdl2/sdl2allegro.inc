@@ -367,16 +367,18 @@ implementation
     {$IFDEF GO32V2}
       go32,
     {$ENDIF}
-    e_Log, g_options, SysUtils, ctypes;
+    e_Log, g_options, SysUtils, Math, ctypes;
 
   const
     maxKeyBuffer = 64;
 
   var
+    deskw, deskh, deskbpp: Integer;
     keyring: array [0..maxKeyBuffer - 1] of Integer;
     keybeg, keyend: Integer;
     inputChar: Char;
     inputText: Boolean;
+    useVsync: Boolean;
     ticks: UInt32;
     quit: Boolean;
 
@@ -599,12 +601,12 @@ implementation
 
   function SDL_RWFromFile(const _file: PAnsiChar; const mode: PAnsiChar): PSDL_RWops;
   begin
-    result := nil
+    result := nil (* stub, used for sdl2stub_mixer *)
   end;
 
   function SDL_RWFromConstMem(const mem: Pointer; size: SInt32): PSDL_RWops;
   begin
-    result := nil
+    result := nil (* stub, used for sdl2stub_mixer *)
   end;
 
 (********** KEYBOARD **********)
@@ -846,34 +848,84 @@ implementation
 
   function SDL_GetTicks: UInt32;
   begin
-    result := ticks;
+    result := ticks
   end;
 
 (********** DISPLAY MODES **********)
 
+  function GetPixelFormat (bpp: Integer): UInt32;
+  begin
+    case bpp of
+    8: result := SDL_PIXELFORMAT_INDEX8;
+    15: result := SDL_PIXELFORMAT_RGB555;
+    16: result := SDL_PIXELFORMAT_RGB565;
+    24: result := SDL_PIXELFORMAT_RGB888;
+    32: result := SDL_PIXELFORMAT_RGBA8888;
+    else result := SDL_PIXELFORMAT_UNKNOWN
+    end
+  end;
+
   function SDL_GetDesktopDisplayMode(displayIndex: SInt32; mode: PSDL_DisplayMode): SInt32;
   begin
-    e_LogWritefln('SDL_GetDesktopDisplayMode %s', [displayIndex]);
-    result := -1;
-    mode.format := SDL_PIXELFORMAT_UNKNOWN; (* !!! *)
+    ASSERT(mode <> nil);
+    mode.format := GetPixelFormat(deskbpp);
+    mode.w := deskw;
+    mode.h := deskh;
     mode.refresh_rate := 0;
     mode.driverdata := nil;
-    if get_desktop_resolution(@mode.w, @mode.h) = 0 then
-      result := 0
+    result := 0
   end;
 
   function SDL_GetClosestDisplayMode(displayIndex: SInt32; const mode: PSDL_DisplayMode; closest: PSDL_DisplayMode): PSDL_DisplayMode;
+    var m: PGFX_MODE_LIST; i, bpp: Integer;
   begin
-    e_LogWritefln('SDL_GetClosestDisplayMode %s', [displayIndex]);
+    ASSERT(mode <> nil);
+    ASSERT(closest <> nil);
+
     result := nil;
+    bpp := SDL_BITSPERPIXEL(mode.format);
+    if bpp = 0 then bpp := deskbpp;
+
+    m := nil;
+    if (gfx_driver <> nil) and (@gfx_driver.fetch_mode_list <> nil) then
+       m := gfx_driver.fetch_mode_list;
+
+    if m <> nil then
+    begin
+      i := 0;
+      while (i < m.num_modes) and (m.mode[i].bpp <> bpp) do inc(i);
+      if i < m.num_modes then
+      begin
+        closest.format := mode.format;
+        closest.refresh_rate := 0;
+        closest.driverdata := nil;
+        closest.w := m.mode[i].width;
+        closest.h := m.mode[i].height;
+        result := closest
+      end;
+      while i < m.num_modes do
+      begin
+        if (m.mode[i].bpp = bpp) and (closest.w >= mode.w) and (m.mode[i].width <= closest.w) and (closest.h >= mode.h) and (m.mode[i].height <= closest.h) then
+        begin
+          closest.w := m.mode[i].width;
+          closest.h := m.mode[i].height;
+          result := closest
+        end;
+        inc(i)
+      end;
+      destroy_gfx_mode_list(m)
+    end
   end;
 
   function SDL_GetNumDisplayModes(displayIndex: SInt32): SInt32;
     var m: PGFX_MODE_LIST;
   begin
-    e_LogWritefln('SDL_GetNumDisplayModes %s', [displayIndex]);
     result := -1;
-    m := get_gfx_mode_list(GFX_AUTODETECT);
+
+    m := nil;
+    if (gfx_driver <> nil) and (@gfx_driver.fetch_mode_list <> nil) then
+       m := gfx_driver.fetch_mode_list;
+
     if m <> nil then
     begin
       result := m.num_modes;
@@ -884,24 +936,30 @@ implementation
   function SDL_GetDisplayMode(displayIndex: SInt32; modeIndex: SInt32; mode: PSDL_DisplayMode): SInt32;
     var m: PGFX_MODE_LIST;
   begin
-    e_LogWritefln('SDL_GetDisplayMode %s %s', [displayIndex, modeIndex]);
     result := -1;
-    m := get_gfx_mode_list(GFX_AUTODETECT);
-    if (m <> nil) and (modeIndex >= 0) and (modeIndex < m.num_modes) then
+
+    m := nil;
+    if (gfx_driver <> nil) and (@gfx_driver.fetch_mode_list <> nil) then
+       m := gfx_driver.fetch_mode_list;
+
+    if m <> nil then
     begin
-      mode.format := SDL_PIXELFORMAT_UNKNOWN; (* FIX IT *)
-      mode.w := m.mode[modeIndex].width;
-      mode.h := m.mode[modeIndex].height;
-      mode.refresh_rate := 0;
-      mode.driverdata := nil;
-      destroy_gfx_mode_list(m);
-      result := 0
+      if (modeIndex >= 0) and (modeIndex < m.num_modes) then
+      begin
+        mode.format := GetPixelFormat(m.mode[modeIndex].bpp);
+        mode.w := m.mode[modeIndex].width;
+        mode.h := m.mode[modeIndex].height;
+        mode.refresh_rate := 0;
+        mode.driverdata := nil;
+        result := 0
+      end;
+      destroy_gfx_mode_list(m)
     end
   end;
 
   function SDL_GetDisplayDPI(displayIndex: SInt32; ddpi, hdpi, vdpi: PFloat): SInt32;
   begin
-    result := -1
+    result := -1 (* stub *)
   end;
 
 (*********** WINDOW MANAGEMENT **********)
@@ -909,7 +967,6 @@ implementation
   function SDL_CreateWindow(const title: PAnsiChar; x: SInt32; y: SInt32; w: SInt32; h: SInt32; flags: UInt32): PSDL_Window;
     var window: PSDL_Window; mode: Integer;
   begin
-    e_LogWritefln('SDL_CreateWindow %s %s %s %s %s %u', [title, x, y, w, h, flags]);
     result := nil;
 
 {$IF DEFINED(GO32V2)}
@@ -921,7 +978,9 @@ implementation
       mode := GFX_AUTODETECT_WINDOWED;
 {$ENDIF}
 
-    sdl2allegro_bpp := gBPP;
+    if sdl2allegro_bpp = 0 then sdl2allegro_bpp := gBPP;
+    if sdl2allegro_bpp = 0 then sdl2allegro_bpp := deskbpp;
+
     set_color_depth(sdl2allegro_bpp);
     if set_gfx_mode(mode, w, h, 0, 0) = 0 then
     begin
@@ -943,9 +1002,8 @@ implementation
   function SDL_SetWindowFullscreen(window: PSDL_Window; flags: UInt32): SInt32;
     var mode: Integer;
   begin
-    e_LogWritefln('SDL_SetWindowFullscreen %u', [flags]);
+    ASSERT(window <> nil);
     result := -1;
-    if window = nil then exit;
 
 {$IF DEFINED(GO32V2)}
     mode := GFX_AUTODETECT;
@@ -973,9 +1031,7 @@ implementation
 
   procedure SDL_SetWindowSize(window: PSDL_Window; w: SInt32; h: SInt32);
   begin
-    e_LogWritefln('SDL_SetWindowSize %s %s', [w, h]);
-    if window = nil then exit;
-
+    ASSERT(window <> nil);
     set_color_depth(sdl2allegro_bpp);
     if set_gfx_mode(window.mode, w, h, 0, 0) = 0 then
     begin
@@ -987,13 +1043,16 @@ implementation
       ASSERT(sdl2allegro_screen <> nil);
       set_palette(desktop_palette);
       window.w := w;
-      window.h := h;
+      window.h := h
+    end
+    else
+    begin
+      ASSERT(FALSE, 'Unable to set window size')
     end
   end;
 
   procedure SDL_DestroyWindow(window: PSDL_Window);
   begin
-    e_LogWriteln('SDL_DestroyWindow');
     if window = nil then exit;
     if sdl2allegro_screen <> nil then
       destroy_bitmap(sdl2allegro_screen);
@@ -1003,35 +1062,27 @@ implementation
 
   procedure SDL_GetWindowSize(window: PSDL_Window; w: PInt; h: PInt);
   begin
-    e_LogWriteln('SDL_GetWindowSize');
-    if window = nil then exit;
-    if w <> nil then
-      w^ := window.w;
-    if h <> nil then
-      h^ := window.h;
+    ASSERT(window <> nil);
+    if w <> nil then w^ := window.w;
+    if h <> nil then h^ := window.h;
   end;
 
   procedure SDL_RestoreWindow(window: PSDL_Window);
   begin
-    e_LogWriteln('SDL_RestoreWindow');
-    if window = nil then exit;
+    ASSERT(window <> nil);
     (* stub *)
   end;
 
   function SDL_SetWindowGammaRamp(window: PSDL_Window; const red: PUInt16; const green: PUInt16; const blue: PUInt16): SInt32;
   begin
-    e_LogWriteln('SDL_SetWindowGammaRamp');
-    result := -1;
-    if window = nil then exit;
-    result := 0
+    ASSERT(window <> nil);
+    result := 0 (* stub *)
   end;
 
   function SDL_GetWindowGammaRamp(window: PSDL_Window; red: PUInt16; green: PUInt16; blue: PUInt16): SInt32;
   begin
-    e_LogWriteln('SDL_GetWindowGammaRamp');
-    result := -1;
-    if window = nil then exit;
-    result := 0
+    ASSERT(window <> nil);
+    result := 0 (* stub *)
   end;
 
 (********** OPENGL MANAGEMENT **********)
@@ -1051,34 +1102,41 @@ implementation
 
   function SDL_GL_CreateContext(window: PSDL_Window): TSDL_GLContext;
   begin
-    e_LogWriteln('SDL_GL_CreateContext');
-    result := window
+    result := window (* stub *)
   end;
 
   function SDL_GL_MakeCurrent(window: PSDL_Window; context: TSDL_GLContext): SInt32;
   begin
-    e_LogWriteln('SDL_GL_MakeCurrent');
-    result := 0
+    ASSERT(window <> nil);
+    if context <> nil then
+      ASSERT(window = context);
+    result := 0 (* stub *)
   end;
 
   procedure SDL_GL_DeleteContext(context: TSDL_GLContext);
   begin
-    e_LogWriteln('SDL_GL_DeleteContext');
+    (* stub *)
   end;
 
   function SDL_GL_SetSwapInterval(interval: SInt32): SInt32;
   begin
-    e_LogWritefln('SDL_GL_SetSwapInterval %s', [interval]);
-    result := 0
+    result := 0;
+    if interval = 0 then
+      useVsync := False
+    else
+      useVsync := True
   end;
 
   procedure SDL_GL_SwapWindow(window: PSDL_Window);
   begin
+    ASSERT(window <> nil);
     ASSERT(sdl2allegro_screen <> nil);
     acquire_screen;
-    blit(sdl2allegro_screen, screen, 0, 0, 0, 0, sdl2allegro_screen.w, sdl2allegro_screen.h);
+    blit(sdl2allegro_screen, screen, 0, 0, 0, 0, min(sdl2allegro_screen.w, screen.w), min(sdl2allegro_screen.h, screen.h));
     show_video_bitmap(screen);
     release_screen;
+    if useVsync then
+      vsync;
   end;
 
 (********** EVENTS **********)
@@ -1088,7 +1146,9 @@ implementation
     result := 1;
     case event.type_ of
       SDL_QUITEV: quit := True;
-      else ASSERT(FALSE); result := 0
+    else
+      ASSERT(FALSE);
+      result := 0
     end
   end;
 
@@ -1116,13 +1176,17 @@ implementation
       inputChar := #0;
       result := 1;
       Exit
-    end;
+    end
+    else
+      inputChar := #0;
 
     poll_keyboard;
     if not IsEmptyKeyboard then
     begin
       alscan := NextScancode;
       pressed := alscan and $80 = 0;
+
+      inputChar := #0;
       if pressed then
       begin
         shift := key_shifts and KB_SHIFT_FLAG <> 0;
@@ -1134,18 +1198,18 @@ implementation
         event.type_ := SDL_KEYDOWN
       end
       else
-      begin
-        inputChar := #0;
-        event.type_ := SDL_KEYUP
-      end;
+        event.type_ := SDL_KEYUP;
+
       event.key.timestamp := ticks;
       event.key.windowID := 0;
+
       (**** df not use it?
       if pressed then
         event.key.state := SDL_PRESSED
       else
         event.key.state := SDL_RELEASED;
       ****)
+
       event.key._repeat := 0;
       event.key.keysym.scancode := s2sa[alscan and $7F];
       event.key.keysym.sym := 0; (* df not use it? *)
@@ -1159,9 +1223,7 @@ implementation
 
   function SDL_ShowCursor(toggle: SInt32): SInt32;
   begin
-    e_LogWritefln('SDL_ShowCursor %s', [toggle]);
-    (* TODO *)
-    result := 0
+    result := 0 (* stub *)
   end;
 
 (********** SDL **********)
@@ -1172,16 +1234,15 @@ implementation
   end;
   procedure AllegroQuitCallbackEND; begin end;
 
-  function SDL_SetHint( const name: PChar; const value: PChar) : boolean;
+  function SDL_SetHint(const name: PChar; const value: PChar): boolean;
   begin
     e_LogWritefln('SDL_SetHint %s %s', [name, value]);
-    (* TODO *)
-    result := false
+    result := false (* stub *)
   end;
 
   function SDL_GetError: PAnsiChar;
   begin
-    result := allegro_error;
+    result := allegro_error
   end;
 
 {$IFDEF GO32V2}
@@ -1224,6 +1285,13 @@ implementation
       set_keyboard_rate(0, 0);
       install_int_ex(AllegroTimerCallback, MSEC_TO_TIMER(1));
       set_close_button_callback(AllegroQuitCallback);
+      deskbpp := desktop_color_depth;
+      if deskbpp = 0 then deskbpp := 8;
+      if get_desktop_resolution(@deskw, @deskh) <> 0 then
+      begin
+        deskw := 640;
+        deskh := 480
+      end;
       result := 0
     end
   end;

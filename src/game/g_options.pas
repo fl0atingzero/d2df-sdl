@@ -162,13 +162,26 @@ var
   percentage: Integer;
 begin
   (* Display 0 = Primary display *)
-  SDL_GetDesktopDisplayMode(0, @display);
+  if SDL_GetDesktopDisplayMode(0, @display) <> 0 then
+  begin
+    display.format := SDL_PIXELFORMAT_UNKNOWN;
+    display.w := 640;
+    display.h := 480;
+    display.refresh_rate := 0;
+    display.driverdata := nil
+  end;
   {$IF DEFINED(ANDROID)}
     gScreenWidth := display.w;
     gScreenHeight := display.h;
-    //gBPP := SDL_BITSPERPIXEL(dispaly.format);
-    gBPP := 32;
+    gBPP := SDL_BITSPERPIXEL(dispaly.format);
+    if gBPP = 0 then gBPP := 32;
     gFullScreen := True; (* rotation not allowed? *)
+  {$ELSEIF DEFINED(GO32V2)}
+    gScreenWidth := display.w;
+    gScreenHeight := display.h;
+    gBPP := SDL_BITSPERPIXEL(display.format);
+    if gBPP = 0 then gBPP := 8;
+    gFullScreen := False; (* Do not change videomode twice *)
   {$ELSE}
     (* Window must be smaller than display *)
     closest.w := display.w;
