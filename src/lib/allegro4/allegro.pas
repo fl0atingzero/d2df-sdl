@@ -269,6 +269,7 @@ interface
       windowed: cint;
     end;
 
+    PRGB = ^RGB;
     RGB = record
       r, g, b, filler: cuchar;
     end;
@@ -300,6 +301,7 @@ interface
     key_shifts: cint; LibraryLibAllegroVar;
     color_map: PCOLOR_MAP_T; LibraryLibAllegroVar;
     gfx_driver: PGFX_DRIVER_T; LibraryLibAllegroVar;
+    palette_color: array [0..255] of cint; LibraryLibAllegroVar;
 
   function get_desktop_resolution (width, height: Pcint): cint; LibraryLibAllegroImp;
   function get_gfx_mode_list (card: cint): PGFX_MODE_LIST; LibraryLibAllegroImp;
@@ -385,6 +387,10 @@ interface
 
   procedure vsync; LibraryLibAllegroImp;
   function desktop_color_depth: cint; LibraryLibAllegroImp;
+
+  procedure select_palette (const p: PALETTE); LibraryLibAllegroImp;
+  procedure unselect_palette; LibraryLibAllegroImp;
+  procedure set_color (index: cint; const p: PRGB); LibraryLibAllegroImp;
 
   (* MACRO *)
   function install_allegro (system_id: cint; errno_ptr: Pcint; atexit_ptr: AtExitFunction): cint; inline;

@@ -296,6 +296,13 @@ interface
   var
     sdl2allegro_screen: PBITMAP;
     sdl2allegro_bpp: Integer;
+    globalTransTable: COLOR_MAP_T;
+    redTransTable: COLOR_MAP_T;
+    greenTransTable: COLOR_MAP_T;
+    blueTransTable: COLOR_MAP_T;
+    darkTransTable: COLOR_MAP_T;
+    lightTransTable: COLOR_MAP_T;
+
 
   /// FUNCTIONS ///
 
@@ -367,7 +374,7 @@ implementation
     {$IFDEF GO32V2}
       go32,
     {$ENDIF}
-    e_Log, g_options, SysUtils, Math, ctypes;
+    e_Log, g_options, SysUtils, Math, Classes, ctypes;
 
   const
     maxKeyBuffer = 64;
@@ -381,6 +388,7 @@ implementation
     useVsync: Boolean;
     ticks: UInt32;
     quit: Boolean;
+    custompal: PALETTE;
 
     s2lc: array [0..KEY_MAX] of char = (
       #00, 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o',
@@ -532,6 +540,48 @@ implementation
       SDL_SCANCODE_CAPSLOCK,
       SDL_SCANCODE_UNKNOWN (* KEY_MAX *)
     );
+
+  procedure LoadCustomPalette (const name: String);
+    var f: TFileStream; i: Integer;
+  begin
+    try
+      f := TFileStream.Create(name, fmOpenRead);
+      e_LogWriteLn('Load custom palette ' + name);
+      for i := 0 to 255 do
+      begin
+        custompal[i].r := f.ReadByte();
+        custompal[i].g := f.ReadByte();
+        custompal[i].b := f.ReadByte();
+        custompal[i].filler := $FF;
+      end;
+      f.Destroy
+    except
+      e_LogWriteLn('Fallback to default palette');
+      custompal := default_palette;
+(*
+      for i := 0 to 255 do
+      begin
+        custompal[i].r := i div 4;
+        custompal[i].g := i div 4;
+        custompal[i].b := i div 4;
+        custompal[i].filler := $FF;
+      end;
+*)
+    end
+  end;
+
+  procedure UpdatePalette;
+  begin
+    set_palette(custompal);
+    select_palette(custompal);
+    create_trans_table(@globalTransTable, custompal, 255, 255, 255, nil);
+    create_trans_table(@redTransTable, custompal, 0, 255, 255, nil);
+    create_trans_table(@greenTransTable, custompal, 255, 0, 255, nil);
+    create_trans_table(@blueTransTable, custompal, 255, 255, 0, nil);
+    create_trans_table(@darkTransTable, custompal, 191, 191, 191, nil);
+    create_trans_table(@lightTransTable, custompal, 64, 64, 64, nil);
+    color_map := @globalTransTable;
+  end;
 
   function IsEmptyKeyboard: Boolean;
   begin
@@ -995,6 +1045,7 @@ implementation
       window.w := w;
       window.h := h;
       window.mode := mode;
+      UpdatePalette;
       result := window
     end
   end;
@@ -1023,7 +1074,7 @@ implementation
       if sdl2allegro_screen = nil then
         sdl2allegro_screen := create_bitmap(window.w, window.h);
       ASSERT(sdl2allegro_screen <> nil);
-      set_palette(desktop_palette);
+      UpdatePalette;
       window.mode := mode;
       result := 0
     end
@@ -1041,7 +1092,7 @@ implementation
       if sdl2allegro_screen = nil then
         sdl2allegro_screen := create_bitmap(w, h);
       ASSERT(sdl2allegro_screen <> nil);
-      set_palette(desktop_palette);
+      UpdatePalette;
       window.w := w;
       window.h := h
     end
@@ -1292,6 +1343,7 @@ implementation
         deskw := 640;
         deskh := 480
       end;
+      LoadCustomPalette('PLAYPAL.LMP');
       result := 0
     end
   end;

@@ -48,12 +48,7 @@ implementation
     matrixMode: GLenum;
     blendMode: Integer;
 
-    globalTransTable: COLOR_MAP_T;
-    redTransTable: COLOR_MAP_T;
-    greenTransTable: COLOR_MAP_T;
-    blueTransTable: COLOR_MAP_T;
-    darkTransTable: COLOR_MAP_T;
-    lightTransTable: COLOR_MAP_T;
+    vram_usage, xram_usage: Integer;
 
   function AddTexture: Integer;
     var i: Integer;
@@ -658,11 +653,13 @@ implementation
       tex[ctex].bmp := create_bitmap(width, height);
     assert(tex[ctex].bmp <> nil);
 
+    vram_usage += width * height;
     if pixels = nil then exit;
 
     p := pixels;
     if format = GL_RGBA then
     begin
+      xram_usage += width * height * 4;
       if sdl2allegro_bpp <= 8 then
         trans := 0
       else
@@ -681,6 +678,7 @@ implementation
     end
     else
     begin
+      xram_usage += width * height * 3;
       for j := 0 to height - 1 do
         for i := 0 to width - 1 do
         begin
@@ -710,6 +708,7 @@ implementation
     p := pixels;
     if format = GL_RGBA then
     begin
+      xram_usage += width * height * 4;
       if sdl2allegro_bpp <= 8 then
         trans := 0
       else
@@ -728,6 +727,7 @@ implementation
     end
     else
     begin
+      xram_usage += width * height * 4;
       for j := 0 to height - 1 do
         for i := 0 to width - 1 do
         begin
@@ -747,17 +747,11 @@ implementation
   procedure nogl_Init;
   begin
     cmds.mode := GL_INVALID_ENUM;
-    create_trans_table(@globalTransTable, default_palette, 255, 255, 255, nil);
-    create_trans_table(@redTransTable, default_palette, 0, 255, 255, nil);
-    create_trans_table(@greenTransTable, default_palette, 255, 0, 255, nil);
-    create_trans_table(@blueTransTable, default_palette, 255, 255, 0, nil);
-    create_trans_table(@darkTransTable, default_palette, 191, 191, 191, nil);
-    create_trans_table(@lightTransTable, default_palette, 64, 64, 64, nil);
-    color_map := @globalTransTable;
   end;
 
   procedure nogl_Quit;
   begin
+    e_LogWritefln('vram=%s xram=%s', [vram_usage, xram_usage]);
   end;
 
 initialization
