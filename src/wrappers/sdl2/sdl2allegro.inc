@@ -372,6 +372,9 @@ implementation
 
   uses
     {$IFDEF GO32V2}
+      {$IFNDEF USE_ENETWRAP}
+        Watt32,
+      {$ENDIF}
       go32,
     {$ENDIF}
     e_Log, g_options, SysUtils, Math, Classes, ctypes;
@@ -877,7 +880,10 @@ implementation
 
   procedure AllegroTimerCallback; cdecl;
   begin
-    inc(ticks)
+    inc(ticks);
+    {$IF DEFINED(GO32V2) AND NOT DEFINED(USE_ENETWRAP)}
+      userTimerTick(1);
+    {$ENDIF}
   end;
   procedure AllegroTimerCallbackEND; begin end;
 
@@ -1188,6 +1194,10 @@ implementation
     release_screen;
     if useVsync then
       vsync;
+
+    {$IF DEFINED(GO32V2) AND NOT DEFINED(USE_ENETWRAP)}
+      tcp_tick(nil);
+    {$ENDIF}
   end;
 
 (********** EVENTS **********)
@@ -1267,7 +1277,11 @@ implementation
       event.key.keysym._mod := 0; (* df not use it? *)
       result := 1;
       Exit
-    end
+    end;
+
+    {$IF DEFINED(GO32V2) AND NOT DEFINED(USE_ENETWRAP)}
+      tcp_tick(nil);
+    {$ENDIF}
   end;
 
 (********** MOUSE **********)

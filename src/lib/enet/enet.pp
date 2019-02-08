@@ -13,7 +13,7 @@
 {$Z4} // Force four-byte enums
 
 
-{$IFDEF MSWINDOWS}
+{$IF DEFINED(MSWINDOWS)}
   {$IFDEF LIBENET_WINDOZE_STATIC}
     {$LINKLIB libenet.a}
     {$LINKLIB libwinmm.a}
@@ -35,6 +35,11 @@
     // external LIBNAME name 'var_name' would've been more correct here
     // because just external is case insensitive, but fuck it
   {$ENDIF}
+{$ELSEIF DEFINED(GO32V2)}
+  {$LINKLIB libenet.a}
+  {$DEFINE libraryLibENetDecl := cdecl}
+  {$DEFINE libraryLibENetImp := cdecl; external}
+  {$DEFINE libraryLibENetVar := cvar; external}
 {$ELSE}
   {$DEFINE libraryLibENetDecl := cdecl}
   {$DEFINE libraryLibENetImp := cdecl; external 'enet'}
@@ -75,8 +80,10 @@ interface
 
 uses
   ctypes,
-{$IFDEF WINDOWS}
+{$IF DEFINED(WINDOWS)}
   WinSock2;
+{$ELSEIF DEFINED(GO32V2)}
+  Watt32;
 {$ELSE}
   BaseUnix, Sockets;
 {$ENDIF}

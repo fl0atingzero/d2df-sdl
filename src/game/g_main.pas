@@ -38,6 +38,9 @@ implementation
 
 uses
 {$INCLUDE ../nogl/noGLuses.inc}
+{$IF DEFINED(GO32V2) AND NOT DEFINED(USE_ENETWRAP)}
+  Watt32,
+{$ENDIF}
 {$IFDEF ENABLE_HOLMES}
   g_holmes, fui_wadread, fui_style, fui_gfx_gl,
 {$ENDIF}
@@ -79,6 +82,24 @@ begin
     'Build date: ' + GAME_BUILDDATE + ' ' + GAME_BUILDTIME,
     TMsgType.Notify
   );
+
+{$IF DEFINED(GO32V2) AND NOT DEFINED(USE_ENETWRAP)}
+  sdlflags := sock_init;
+  {$IFDEF USE_SDL2ALLEGRO}
+    hires_timer(0);
+    init_userSuppliedTimerTick;
+  {$ENDIF}
+  e_WriteLog('Wattcp Init: (' + IntToStr(sdlflags) + ') ' + sock_init_err, TMsgType.Notify);
+  e_WriteLog('Wattcp Version: ' + wattcpVersion, TMsgType.Notify);
+  e_WriteLog('Wattcp Capabilities: ' + wattcpCapabilities, TMsgType.Notify);
+  e_WriteLog('Wattcp IP: ' +
+    IntToStr(my_ip_addr div 16777216 mod 256) + '.' +
+    IntToStr(my_ip_addr div 65536 mod 256) + '.' +
+    IntToStr(my_ip_addr div 256 mod 256) + '.' +
+    IntToStr(my_ip_addr mod 256),
+    TMsgType.Notify
+ );
+{$ENDIF}
 
 {$IFDEF HEADLESS}
   conbufDumpToStdOut := true;
