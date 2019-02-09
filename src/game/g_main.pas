@@ -38,8 +38,11 @@ implementation
 
 uses
 {$INCLUDE ../nogl/noGLuses.inc}
-{$IF DEFINED(GO32V2) AND NOT DEFINED(USE_ENETWRAP)}
+{$IFDEF USE_WATT32}
   Watt32,
+{$ENDIF}
+{$IFDEF USE_LIBSOCKET}
+  Socket,
 {$ENDIF}
 {$IFDEF ENABLE_HOLMES}
   g_holmes, fui_wadread, fui_style, fui_gfx_gl,
@@ -83,13 +86,13 @@ begin
     TMsgType.Notify
   );
 
-{$IF DEFINED(GO32V2) AND NOT DEFINED(USE_ENETWRAP)}
+{$IFDEF USE_WATT32}
   sdlflags := sock_init;
   {$IFDEF USE_SDL2ALLEGRO}
     hires_timer(0);
     init_userSuppliedTimerTick;
   {$ENDIF}
-  e_WriteLog('Wattcp Init: (' + IntToStr(sdlflags) + ') ' + sock_init_err, TMsgType.Notify);
+  e_WriteLog('Wattcp Init: (' + IntToStr(sdlflags) + ') ' + sock_init_err(sdlflags), TMsgType.Notify);
   e_WriteLog('Wattcp Version: ' + wattcpVersion, TMsgType.Notify);
   e_WriteLog('Wattcp Capabilities: ' + wattcpCapabilities, TMsgType.Notify);
   e_WriteLog('Wattcp IP: ' +
@@ -99,6 +102,11 @@ begin
     IntToStr(my_ip_addr mod 256),
     TMsgType.Notify
  );
+{$ENDIF}
+{$IFDEF USE_LIBSOCKET}
+  sdlflags := __lsck_init;
+  e_WriteLog('libsocket Init: (' + IntToStr(sdlflags) + ') ' + lsck_strerror(sdlflags), TMsgType.Notify);
+  e_WriteLog('libsocket Version: ' + __lsck_get_version, TMsgType.Notify);
 {$ENDIF}
 
 {$IFDEF HEADLESS}

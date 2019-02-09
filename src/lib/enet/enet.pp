@@ -79,14 +79,16 @@ unit ENet;
 interface
 
 uses
-  ctypes,
-{$IF DEFINED(WINDOWS)}
-  WinSock2;
-{$ELSEIF DEFINED(GO32V2)}
-  Watt32;
+{$IF DEFINED(USE_WATT32)}
+  Watt32,
+{$ELSEIF DEFINED(USE_LIBSOCKET)}
+  Socket,
+{$ELSEIF DEFINED(WINDOWS)}
+  WinSock2,
 {$ELSE}
-  BaseUnix, Sockets;
+  BaseUnix, Sockets,
 {$ENDIF}
+  ctypes;
 
 ////////////////////////////////////////////////////////////////////////////////
 // types.h

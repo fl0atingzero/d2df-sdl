@@ -372,10 +372,10 @@ implementation
 
   uses
     {$IFDEF GO32V2}
-      {$IFNDEF USE_ENETWRAP}
-        Watt32,
-      {$ENDIF}
       go32,
+    {$ENDIF}
+    {$IFDEF USE_WATT32}
+      Watt32,
     {$ENDIF}
     e_Log, g_options, SysUtils, Math, Classes, ctypes;
 
@@ -881,7 +881,7 @@ implementation
   procedure AllegroTimerCallback; cdecl;
   begin
     inc(ticks);
-    {$IF DEFINED(GO32V2) AND NOT DEFINED(USE_ENETWRAP)}
+    {$IFDEF USE_WATT32}
       userTimerTick(1);
     {$ENDIF}
   end;
@@ -1195,7 +1195,7 @@ implementation
     if useVsync then
       vsync;
 
-    {$IF DEFINED(GO32V2) AND NOT DEFINED(USE_ENETWRAP)}
+    {$IFDEF USE_WATT32}
       tcp_tick(nil);
     {$ENDIF}
   end;
@@ -1279,7 +1279,7 @@ implementation
       Exit
     end;
 
-    {$IF DEFINED(GO32V2) AND NOT DEFINED(USE_ENETWRAP)}
+    {$IFDEF USE_WATT32}
       tcp_tick(nil);
     {$ENDIF}
   end;

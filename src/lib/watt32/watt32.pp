@@ -1,3 +1,7 @@
+// TCP/IP stack for DOS
+// ftp://ftp.delorie.com/pub/djgpp/current/v2tk/wat3222br6.zip
+// ftp://ftp.delorie.com/pub/djgpp/current/v2tk/wat3222sr6.zip
+
 {$MODE OBJFPC}
 {$PACKRECORDS C}
 
@@ -21,6 +25,9 @@ interface
   uses ctypes;
 
   const
+    (* socket size have another size on 64-bit systems *)
+    W32_UNDOC_TCP_SOCKET_SIZE = 4470;
+    W32_UNDOC_UDP_SOCKET_SIZE = 4470;
     FD_MAXFDSET = 512; (* FD_SETSIZE *)
 
   type
@@ -30,37 +37,42 @@ interface
     end;
 
     tcp_Socket = record
-      undoc: array [0..4469] of cuchar;
+      undoc: array [0..W32_UNDOC_TCP_SOCKET_SIZE - 1] of cuchar;
     end;
 
     udp_Socket = record
-      undoc: array [0..1739] of cuchar;
+      undoc: array [0..W32_UNDOC_UDP_SOCKET_SIZE - 1] of cuchar;
     end;
 
     Psock_type = Pointer;
 
   var
+    wattcpCopyrigh: PChar; LibraryLibWattVar;
     my_ip_addr: culong; external name '__w32_my_ip_addr';
 
-  function wattcpCopyright: PChar; LibraryLibWattImp;
   function wattcpVersion: PChar; LibraryLibWattImp;
   function wattcpCapabilities: PChar; LibraryLibWattImp;
+  function wattcpBuildCC: PChar; LibraryLibWattImp;
+  function wattcpBuildCCexe: PChar; LibraryLibWattImp;
+  function wattcpBuildCflags: PChar; LibraryLibWattImp;
 
-  function watt_sock_init (tcp, udp: csize_t): cint; LibraryLibWattImp;
-  function sock_init_err: PChar; LibraryLibWattImp;
+  function sock_init: cint; inline; (* MACRO *)
+  function watt_sock_init (tcp_Sock_size, udp_Sock_size, time_t_size: csize_t): cint; LibraryLibWattImp;
+
+  function sock_init_err (rc: cint): PChar; LibraryLibWattImp name '_w32_sock_init_err';
   procedure sock_exit; LibraryLibWattImp;
   procedure dbug_init; LibraryLibWattImp;
   procedure init_misc; LibraryLibWattImp;
   procedure sock_sig_exit (const msg: PChar; sigint: cint); LibraryLibWattImp;
 
   function hires_timer (on: cint): cint; LibraryLibWattImp name '_w32_hires_timer';
-  procedure init_userSuppliedTimerTick; LibraryLibWattImp;
-  procedure userTimerTick (elapsed_time_msec: culong); LibraryLibWattImp;
-  procedure init_timer_isr; LibraryLibWattImp name '_w32_init_timer_isr';
-  procedure exit_timer_isr; LibraryLibWattImp name '_w32_exit_timer_isr';
 
-  function tcp_tick (s: Psock_type): culong; LibraryLibWattImp;
+  procedure init_userSuppliedTimerTick; LibraryLibWattImp name '_w32_init_userSuppliedTimerTick';
+  procedure userTimerTick (elapsed_time_msec: culong); LibraryLibWattImp name '_w32_userTimerTick';
+  procedure init_timer_isr; LibraryLibWattImp;
+  procedure exit_timer_isr; LibraryLibWattImp;
 
+  function tcp_tick (s: Psock_type): culong; LibraryLibWattImp name '_w32_tcp_tick';
 
   function htons (hostshort: cuint16): cuint16; LibraryLibWattImp;
   function htonl (hostlong: cuint32): cuint32; LibraryLibWattImp;
@@ -68,7 +80,6 @@ interface
   function ntohl (netlong: cuint32): cuint32; LibraryLibWattImp;
 
   (* MACRO *)
-  function sock_init: cint;
   function fpFD_SET (fdno: cint; var nset: TFDSet): cint;
   function fpFD_CLR (fdno:cint; var nset: TFDSet): cint;
   function fpFD_ZERO (out nset: TFDSet): cint;
@@ -76,9 +87,9 @@ interface
 
 implementation
 
-  function sock_init: cint;
+  function sock_init: cint; inline;
   begin
-    sock_init := watt_sock_init(sizeof(tcp_Socket), sizeof(udp_Socket))
+    sock_init := watt_sock_init(sizeof(tcp_Socket), sizeof(udp_Socket), sizeof(cuint)) (* !!! DJGPP *)
   end;
 
   function fpFD_SET (fdno: cint; var nset: TFDSet): cint;

@@ -63,8 +63,11 @@ uses
   ENet in '../wrappers/enet/enet.pas',
 {$ELSE}
   ENet in '../lib/enet/enet.pp',
-  {$IFDEF GO32V2}
+  {$IFDEF USE_WATT32}
     Watt32 in '../lib/watt32/watt32.pp',
+  {$ENDIF}
+  {$IFDEF USE_LIBSOCKET}
+    Socket in '../lib/socket/socket.pas',
   {$ENDIF}
 {$ENDIF}
 {$IFDEF USE_SDL2ALLEGRO}
