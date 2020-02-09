@@ -4949,6 +4949,8 @@ begin
     ResName := Map;
   end;
 
+  gTime := 0;
+
   //writeln('********: gsw=', gGameSettings.WAD, '; rn=', ResName);
   result := false;
   if (ResName <> '') and (NewWAD <> '') then
@@ -4985,7 +4987,6 @@ begin
   gExit := 0;
   gPauseMain := false;
   gPauseHolmes := false;
-  gTime := 0;
   NetTimeToUpdate := 1;
   NetTimeToReliable := 0;
   NetTimeToMaster := NetMasterRate;
