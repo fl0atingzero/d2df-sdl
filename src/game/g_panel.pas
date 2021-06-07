@@ -29,6 +29,12 @@ type
       Anim: Boolean;
     end;
 
+  ATextureID = array of record
+    case Anim: Boolean of
+      False: (Tex: Cardinal);
+      True:  (AnTex: TAnimation);
+  end;
+
   PPanel = ^TPanel;
   TPanel = Class (TObject)
   private
@@ -39,13 +45,7 @@ type
     FTextureHeight:   Word;
     FAlpha:           Byte;
     FBlending:        Boolean;
-    FTextureIDs:      Array of
-                        record
-                          case Anim: Boolean of
-                            False: (Tex: Cardinal);
-                            True:  (AnTex: TAnimation);
-                        end;
-
+    FTextureIDs:      ATextureID;
     mMovingSpeed: TDFPoint;
     mMovingStart: TDFPoint;
     mMovingEnd: TDFPoint;
@@ -117,8 +117,6 @@ type
                        var Textures: TLevelTextureArray; aguid: Integer);
     destructor  Destroy(); override;
 
-    procedure   Draw (hasAmbient: Boolean; constref ambColor: TDFColor);
-    procedure   DrawShadowVolume(lightX: Integer; lightY: Integer; radius: Integer);
     procedure   Update();
     procedure   SetFrame(Frame: Integer; Count: Byte);
     procedure   NextTexture(AnimLoop: Byte = 0);
@@ -189,6 +187,13 @@ type
     property isGLift: Boolean read getIsGLift;
     property isGBlockMon: Boolean read getIsGBlockMon;
 
+    (* private state *)
+    property Alpha: Byte read FAlpha;
+    property TextureWidth: Word read FTextureWidth;
+    property TextureHeight: Word read FTextureHeight;
+    property Blending: Boolean read FBlending;
+    property TextureIDs: ATextureID read FTextureIDs;
+
   public
     property movingSpeed: TDFPoint read mMovingSpeed write mMovingSpeed;
     property movingStart: TDFPoint read mMovingStart write mMovingStart;
@@ -218,7 +223,7 @@ implementation
 
 uses
   {$INCLUDE ../nogl/noGLuses.inc}
-  e_texture, g_basic, g_map, g_game, g_gfx, e_graphics, g_weapons, g_triggers,
+  e_texture, g_basic, g_map, g_game, g_gfx, g_weapons, g_triggers,
   g_console, g_language, g_monsters, g_player, g_grid, e_log, geom, utils, xstreams;
 
 const
@@ -422,111 +427,6 @@ function TPanel.getIsGBlockMon (): Boolean; inline; begin result := ((tag and Gr
 
 function TPanel.gncNeedSend (): Boolean; inline; begin result := mNeedSend; mNeedSend := false; end;
 procedure TPanel.setDirty (); inline; begin mNeedSend := true; end;
-
-
-procedure TPanel.Draw (hasAmbient: Boolean; constref ambColor: TDFColor);
-var
-  xx, yy: Integer;
-  NoTextureID: DWORD;
-  NW, NH: Word;
-begin
-  if {Enabled and} (FCurTexture >= 0) and
-     (Width > 0) and (Height > 0) and (FAlpha < 255) {and
-     g_Collide(X, Y, Width, Height, sX, sY, sWidth, sHeight)} then
-  begin
-    if FTextureIDs[FCurTexture].Anim then
-      begin // Анимированная текстура
-        if FTextureIDs[FCurTexture].AnTex = nil then
-          Exit;
-
-        for xx := 0 to (Width div FTextureWidth)-1 do
-          for yy := 0 to (Height div FTextureHeight)-1 do
-            FTextureIDs[FCurTexture].AnTex.Draw(
-              X + xx*FTextureWidth,
-              Y + yy*FTextureHeight, TMirrorType.None);
-      end
-    else
-      begin // Обычная текстура
-        case FTextureIDs[FCurTexture].Tex of
-          LongWord(TEXTURE_SPECIAL_WATER): e_DrawFillQuad(X, Y, X+Width-1, Y+Height-1, 0, 0, 255, 0, TBlending.Filter);
-          LongWord(TEXTURE_SPECIAL_ACID1): e_DrawFillQuad(X, Y, X+Width-1, Y+Height-1, 0, 230, 0, 0, TBlending.Filter);
-          LongWord(TEXTURE_SPECIAL_ACID2): e_DrawFillQuad(X, Y, X+Width-1, Y+Height-1, 230, 0, 0, 0, TBlending.Filter);
-          LongWord(TEXTURE_NONE):
-            if g_Texture_Get('NOTEXTURE', NoTextureID) then
-            begin
-              e_GetTextureSize(NoTextureID, @NW, @NH);
-              e_DrawFill(NoTextureID, X, Y, Width div NW, Height div NH, 0, False, False);
-            end
-            else
-            begin
-              xx := X + (Width div 2);
-              yy := Y + (Height div 2);
-              e_DrawFillQuad(X, Y, xx, yy, 255, 0, 255, 0);
-              e_DrawFillQuad(xx, Y, X+Width-1, yy, 255, 255, 0, 0);
-              e_DrawFillQuad(X, yy, xx, Y+Height-1, 255, 255, 0, 0);
-              e_DrawFillQuad(xx, yy, X+Width-1, Y+Height-1, 255, 0, 255, 0);
-            end;
-          else
-          begin
-            if not mMovingActive then
-              e_DrawFill(FTextureIDs[FCurTexture].Tex, X, Y, Width div FTextureWidth, Height div FTextureHeight, FAlpha, True, FBlending, hasAmbient)
-            else
-              e_DrawFillX(FTextureIDs[FCurTexture].Tex, X, Y, Width, Height, FAlpha, True, FBlending, g_dbg_scale, hasAmbient);
-            if hasAmbient then e_AmbientQuad(X, Y, Width, Height, ambColor.r, ambColor.g, ambColor.b, ambColor.a);
-          end;
-        end;
-      end;
-  end;
-end;
-
-procedure TPanel.DrawShadowVolume(lightX: Integer; lightY: Integer; radius: Integer);
-  procedure extrude (x: Integer; y: Integer);
-  begin
-    glVertex2i(x+(x-lightX)*500, y+(y-lightY)*500);
-    //e_WriteLog(Format('  : (%d,%d)', [x+(x-lightX)*300, y+(y-lightY)*300]), MSG_WARNING);
-  end;
-
-  procedure drawLine (x0: Integer; y0: Integer; x1: Integer; y1: Integer);
-  begin
-    // does this side facing the light?
-    if ((x1-x0)*(lightY-y0)-(lightX-x0)*(y1-y0) >= 0) then exit;
-    //e_WriteLog(Format('lightpan: (%d,%d)-(%d,%d)', [x0, y0, x1, y1]), MSG_WARNING);
-    // this edge is facing the light, extrude and draw it
-    glVertex2i(x0, y0);
-    glVertex2i(x1, y1);
-    extrude(x1, y1);
-    extrude(x0, y0);
-  end;
-
-begin
-  if radius < 4 then exit;
-  if Enabled and (FCurTexture >= 0) and (Width > 0) and (Height > 0) and (FAlpha < 255) {and
-     g_Collide(X, Y, Width, Height, sX, sY, sWidth, sHeight)} then
-  begin
-    if not FTextureIDs[FCurTexture].Anim then
-    begin
-      case FTextureIDs[FCurTexture].Tex of
-        LongWord(TEXTURE_SPECIAL_WATER): exit;
-        LongWord(TEXTURE_SPECIAL_ACID1): exit;
-        LongWord(TEXTURE_SPECIAL_ACID2): exit;
-        LongWord(TEXTURE_NONE): exit;
-      end;
-    end;
-    if (X+Width < lightX-radius) then exit;
-    if (Y+Height < lightY-radius) then exit;
-    if (X > lightX+radius) then exit;
-    if (Y > lightY+radius) then exit;
-    //e_DrawFill(FTextureIDs[FCurTexture].Tex, X, Y, Width div FTextureWidth, Height div FTextureHeight, FAlpha, True, FBlending);
-
-    glBegin(GL_QUADS);
-      drawLine(x,       y,        x+width, y); // top
-      drawLine(x+width, y,        x+width, y+height); // right
-      drawLine(x+width, y+height, x,       y+height); // bottom
-      drawLine(x,       y+height, x,       y); // left
-    glEnd();
-  end;
-end;
-
 
 procedure TPanel.positionChanged (); inline;
 var
