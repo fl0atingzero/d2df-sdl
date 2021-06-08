@@ -632,7 +632,6 @@ procedure g_Bot_RemoveAll();
 implementation
 
 uses
-{$INCLUDE ../nogl/noGLuses.inc}
 {$IFDEF ENABLE_HOLMES}
   g_holmes,
 {$ENDIF}
