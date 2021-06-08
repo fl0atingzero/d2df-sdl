@@ -28,7 +28,7 @@ implementation
     {$INCLUDE ../nogl/noGLuses.inc}
     SysUtils, Classes, Math,
     r_graphics,
-    g_basic, g_textures
+    g_base, g_basic, g_textures
   ;
 
   // TODO: remove WITH operator
