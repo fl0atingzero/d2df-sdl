@@ -27,7 +27,7 @@ implementation
   uses
     {$INCLUDE ../nogl/noGLuses.inc}
     SysUtils, Classes, Math,
-    e_graphics,
+    r_graphics,
     g_basic, g_textures
   ;
 
