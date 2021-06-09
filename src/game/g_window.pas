@@ -248,9 +248,6 @@ var
   valres: Word;
   {$ENDIF}
 begin
-{$IFDEF HEADLESS}
-  e_NoGraphics := true;
-{$ENDIF}
 
   idx := 1;
   while (idx <= ParamCount) do
