@@ -37,8 +37,8 @@ uses
 {$IFDEF ENABLE_HOLMES}
   g_holmes, sdlcarcass, fui_ctls,
 {$ENDIF}
-  SysUtils, Classes, MAPDEF, Math,
-  r_window, e_log, g_main,
+  SysUtils, Classes, MAPDEF, Math, r_graphics,
+  r_window, e_log, r_game,
   g_console, r_console, e_input, g_options, g_game,
   g_basic, g_textures, e_sound, g_sound, g_menu, ENet, g_net,
   g_map, g_gfx, g_monsters, xprofiler,
@@ -50,6 +50,79 @@ var
   flag: Boolean;
   wNeedTimeReset: Boolean = false;
   wLoadingQuit: Boolean = false;
+
+procedure Update ();
+begin
+  // remember old mobj positions, prepare for update
+  g_Game_PreUpdate();
+  // server: receive client commands for new frame
+  // client: receive game state changes from server
+       if (NetMode = NET_SERVER) then g_Net_Host_Update()
+  else if (NetMode = NET_CLIENT) then g_Net_Client_Update();
+  // think
+  g_Game_Update();
+  // server: send any accumulated outgoing data to clients
+  if NetMode = NET_SERVER then g_Net_Flush();
+end;
+
+
+procedure Draw ();
+begin
+  r_Game_Draw();
+end;
+
+
+procedure Init();
+var
+  NoSound: Boolean;
+begin
+  Randomize;
+
+{$IFDEF HEADLESS}
+ {$IFDEF USE_SDLMIXER}
+  NoSound := False; // hope env has set SDL_AUDIODRIVER to dummy
+ {$ELSE}
+  NoSound := True; // FMOD backend will sort it out
+ {$ENDIF}
+{$ELSE}
+  NoSound := False;
+{$ENDIF}
+
+  g_Touch_Init;
+
+(*
+  if (e_JoysticksAvailable > 0) then
+    e_WriteLog('Input: Joysticks available.', TMsgType.Notify)
+  else
+    e_WriteLog('Input: No Joysticks.', TMsgType.Notify);
+*)
+
+  if (not gNoSound) then
+  begin
+    e_WriteLog('Initializing sound system', TMsgType.Notify);
+    e_InitSoundSystem(NoSound);
+  end;
+
+  e_WriteLog('Init game', TMsgType.Notify);
+  g_Game_Init();
+
+//  FillChar(charbuff, sizeof(charbuff), ' ');
+end;
+
+procedure Release();
+begin
+  e_WriteLog('Releasing engine', TMsgType.Notify);
+  e_ReleaseEngine();
+
+  e_WriteLog('Releasing input', TMsgType.Notify);
+  e_ReleaseInput();
+
+  if not gNoSound then
+  begin
+    e_WriteLog('Releasing sound', TMsgType.Notify);
+    e_ReleaseSoundSystem();
+  end;
+end;
 
 procedure ResetTimer ();
 begin
