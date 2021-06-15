@@ -37,13 +37,16 @@ interface
   procedure sys_Init;
   procedure sys_Final;
 
+  var (* hooks *)
+    sys_CharPress: procedure (ch: AnsiChar) = nil;
+
 implementation
 
   uses
     SysUtils, SDL, Math,
     {$INCLUDE ../nogl/noGLuses.inc}
     e_log, r_graphics, e_input, e_sound,
-    g_options, g_window, g_console, g_game, g_menu, g_gui, g_main, g_basic;
+    g_options, g_window, g_console, g_game, g_menu, g_gui, g_basic;
 
   const
     GameTitle = 'Doom 2D: Forever (SDL 1.2, %s)';
@@ -453,8 +456,9 @@ implementation
     begin
       g_Console_ProcessBindRepeat(key)
     end;
-    if down and IsValid1251(ev.keysym.unicode) and IsPrintable1251(ch) then
-      CharPress(ch)
+    if @sys_CharPress <> nil then
+      if down and IsValid1251(ev.keysym.unicode) and IsPrintable1251(ch) then
+        sys_CharPress(ch)
   end;
 
   procedure HandleResize (var ev: TSDL_ResizeEvent);
