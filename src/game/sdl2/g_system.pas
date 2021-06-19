@@ -45,8 +45,7 @@ implementation
 
   uses
     SysUtils, SDL2, Math, ctypes,
-    e_log, r_graphics, e_input, e_sound,
-    {$INCLUDE ../nogl/noGLuses.inc}
+    e_log, e_input, e_sound,
     {$IFDEF ENABLE_HOLMES}
       g_holmes, sdlcarcass, fui_ctls,
     {$ENDIF}
@@ -77,28 +76,6 @@ implementation
   end;
 
   (* --------- Graphics --------- *)
-
-  function LoadGL: Boolean;
-  begin
-    result := true;
-    {$IFDEF NOGL_INIT}
-    nogl_Init;
-    if glRenderToFBO and (not nogl_ExtensionSupported('GL_OES_framebuffer_object')) then
-    {$ELSE}
-    if glRenderToFBO and (not Load_GL_ARB_framebuffer_object) then
-    {$ENDIF}
-    begin
-      e_LogWriteln('GL: framebuffer objects not supported; disabling FBO rendering');
-      glRenderToFBO := false;
-    end;
-  end;
-
-  procedure FreeGL;
-  begin
-    {$IFDEF NOGL_INIT}
-    nogl_Quit();
-    {$ENDIF}
-  end;
 
   function GetTitle (): PChar;
     var info: AnsiString;
@@ -150,12 +127,6 @@ implementation
         context := SDL_GL_CreateContext(window);
         if context <> nil then
         begin
-          if not LoadGL then
-          begin
-            e_LogWriteln('GL: unable to load OpenGL functions', TMsgType.Fatal);
-            SDL_GL_DeleteContext(context); context := nil;
-            exit;
-          end;
           if (fullscreen = false) and (maximized = false) and (wc = false) then
           begin
             SDL_GetWindowPosition(window, @x, @y);
@@ -559,7 +530,6 @@ implementation
     e_WriteLog('Releasing SDL2', TMsgType.Notify);
     if context <> nil then
     begin
-      FreeGL;
       SDL_GL_DeleteContext(context);
       context := nil;
     end;

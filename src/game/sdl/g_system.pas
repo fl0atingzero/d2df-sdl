@@ -45,8 +45,7 @@ implementation
 
   uses
     SysUtils, SDL, Math,
-    {$INCLUDE ../nogl/noGLuses.inc}
-    e_log, r_graphics, e_input, e_sound,
+    e_log, e_input, e_sound,
     g_options, g_console, g_game, g_menu, g_gui, g_basic;
 
   const
@@ -73,28 +72,6 @@ implementation
   end;
 
   (* --------- Graphics --------- *)
-
-  function LoadGL: Boolean;
-  begin
-    result := true;
-    {$IFDEF NOGL_INIT}
-    nogl_Init;
-    if glRenderToFBO and (not nogl_ExtensionSupported('GL_OES_framebuffer_object')) then
-    {$ELSE}
-    if glRenderToFBO and (not Load_GL_ARB_framebuffer_object) then
-    {$ENDIF}
-    begin
-      e_LogWriteln('GL: framebuffer objects not supported; disabling FBO rendering');
-      glRenderToFBO := false;
-    end;
-  end;
-
-  procedure FreeGL;
-  begin
-    {$IFDEF NOGL_INIT}
-    nogl_Quit();
-    {$ENDIF}
-  end;
 
   function GetTitle (): PChar;
     var info: AnsiString;
@@ -125,11 +102,6 @@ implementation
       screen := SDL_SetVideoMode(w, h, bpp, flags);
       if screen <> nil then
       begin
-        if not LoadGL then
-        begin
-          e_LogWriteln('GL: unable to load OpenGL functions', TMsgType.Fatal);
-          exit;
-        end;
         SDL_WM_SetCaption(GetTitle(), nil);
         gFullScreen := fullscreen;
         gRC_FullScreen := fullscreen;
@@ -436,7 +408,7 @@ implementation
     if g_dbg_input then
       e_LogWritefln('Input Debug: SDL_VIDEORESIZE %s %s', [ev.w, ev.h]);
     if (modeResize = 1) and (@sys_ScreenResize <> nil) then
-      sys_ScreenResize(ev.w, ev.h);
+      sys_ScreenResize(ev.w, ev.h)
     else if modeResize > 1 then
       InitWindow(ev.w, ev.h, gBPP, gFullscreen)
   end;
@@ -491,10 +463,7 @@ implementation
     for i := 0 to e_MaxJoys - 1 do
       RemoveJoystick(i);
     if screen <> nil then
-    begin
-      FreeGL;
-      SDL_FreeSurface(screen)
-    end;
+      SDL_FreeSurface(screen);
     SDL_Quit
   end;
 
