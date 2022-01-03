@@ -30,8 +30,7 @@ type
     SpawnerUID: Word;
     Triggers: DWArray;
     Obj: TObj;
-    Animation: TAnimation;
-    TextureID: DWORD;
+    Animation: TAnimationState;
     Timeout: DWORD;
     Stopped: Byte;
 
@@ -104,7 +103,6 @@ const
 
   WP_FIRST          = WEAPON_KASTET;
   WP_LAST           = WEAPON_FLAMETHROWER;
-
 
 var
   gwep_debug_fast_trace: Boolean = true;
@@ -562,7 +560,6 @@ end;
 function g_Weapon_CreateShot(I: Integer; ShotType: Byte; Spawner, TargetUID: Word; X, Y, XV, YV: Integer): LongWord;
 var
   find_id: DWord;
-  FramesID: DWORD = 0;
 begin
   if I < 0 then
     find_id := FindShot()
@@ -586,7 +583,6 @@ begin
         Animation := nil;
         Triggers := nil;
         ShotType := WEAPON_ROCKETLAUNCHER;
-        g_Texture_Get('TEXTURE_WEAPON_ROCKET', TextureID);
       end;
     end;
 
@@ -601,8 +597,7 @@ begin
 
         Triggers := nil;
         ShotType := WEAPON_PLASMA;
-        g_Frames_Get(FramesID, 'FRAMES_WEAPON_PLASMA');
-        Animation := TAnimation.Create(FramesID, True, 5);
+        Animation := TAnimationState.Create(True, 5, 2); // !!! put values into table
       end;
     end;
 
@@ -617,8 +612,7 @@ begin
 
         Triggers := nil;
         ShotType := WEAPON_BFG;
-        g_Frames_Get(FramesID, 'FRAMES_WEAPON_BFG');
-        Animation := TAnimation.Create(FramesID, True, 6);
+        Animation := TAnimationState.Create(True, 6, 2); // !!! put values into table
       end;
     end;
 
@@ -633,9 +627,7 @@ begin
 
         Triggers := nil;
         ShotType := WEAPON_FLAMETHROWER;
-        Animation := nil;
-        TextureID := 0;
-        g_Frames_Get(TextureID, 'FRAMES_FLAME');
+        // Animation := TAnimationState.Create(True, 6, 0); // drawed as gfx
       end;
     end;
 
@@ -650,8 +642,7 @@ begin
 
         Triggers := nil;
         ShotType := WEAPON_IMP_FIRE;
-        g_Frames_Get(FramesID, 'FRAMES_WEAPON_IMPFIRE');
-        Animation := TAnimation.Create(FramesID, True, 4);
+        Animation := TAnimationState.Create(True, 4, 2); // !!! put values into table
       end;
     end;
 
@@ -666,8 +657,7 @@ begin
 
         Triggers := nil;
         ShotType := WEAPON_CACO_FIRE;
-        g_Frames_Get(FramesID, 'FRAMES_WEAPON_CACOFIRE');
-        Animation := TAnimation.Create(FramesID, True, 4);
+        Animation := TAnimationState.Create(True, 4, 2); // !!! put values into table
       end;
     end;
 
@@ -682,8 +672,7 @@ begin
 
         Triggers := nil;
         ShotType := WEAPON_MANCUB_FIRE;
-        g_Frames_Get(FramesID, 'FRAMES_WEAPON_MANCUBFIRE');
-        Animation := TAnimation.Create(FramesID, True, 4);
+        Animation := TAnimationState.Create(True, 4, 2); // !!! put values into table
       end;
     end;
 
@@ -698,8 +687,7 @@ begin
 
         Triggers := nil;
         ShotType := WEAPON_BARON_FIRE;
-        g_Frames_Get(FramesID, 'FRAMES_WEAPON_BARONFIRE');
-        Animation := TAnimation.Create(FramesID, True, 4);
+        Animation := TAnimationState.Create(True, 4, 2); // !!! put values into table
       end;
     end;
 
@@ -714,8 +702,7 @@ begin
 
         Triggers := nil;
         ShotType := WEAPON_BSP_FIRE;
-        g_Frames_Get(FramesID, 'FRAMES_WEAPON_BSPFIRE');
-        Animation := TAnimation.Create(FramesID, True, 4);
+        Animation := TAnimationState.Create(True, 4, 2); // !!! put values into table
       end;
     end;
 
@@ -731,8 +718,7 @@ begin
         Triggers := nil;
         ShotType := WEAPON_SKEL_FIRE;
         target := TargetUID;
-        g_Frames_Get(FramesID, 'FRAMES_WEAPON_SKELFIRE');
-        Animation := TAnimation.Create(FramesID, True, 5);
+        Animation := TAnimationState.Create(True, 5, 2); // !!! put values into table
       end;
     end;
   end;
@@ -1151,28 +1137,6 @@ begin
   g_Sound_CreateWADEx('SOUND_PLAYER_SHELL1', GameWAD+':SOUNDS\SHELL1');
   g_Sound_CreateWADEx('SOUND_PLAYER_SHELL2', GameWAD+':SOUNDS\SHELL2');
 
-  g_Texture_CreateWADEx('TEXTURE_WEAPON_ROCKET', GameWAD+':TEXTURES\BROCKET');
-  g_Frames_CreateWAD(nil, 'FRAMES_WEAPON_SKELFIRE', GameWAD+':TEXTURES\BSKELFIRE', 64, 16, 2);
-  g_Frames_CreateWAD(nil, 'FRAMES_WEAPON_BFG', GameWAD+':TEXTURES\BBFG', 64, 64, 2);
-  g_Frames_CreateWAD(nil, 'FRAMES_WEAPON_PLASMA', GameWAD+':TEXTURES\BPLASMA', 16, 16, 2);
-  g_Frames_CreateWAD(nil, 'FRAMES_WEAPON_IMPFIRE', GameWAD+':TEXTURES\BIMPFIRE', 16, 16, 2);
-  g_Frames_CreateWAD(nil, 'FRAMES_WEAPON_BSPFIRE', GameWAD+':TEXTURES\BBSPFIRE', 16, 16, 2);
-  g_Frames_CreateWAD(nil, 'FRAMES_WEAPON_CACOFIRE', GameWAD+':TEXTURES\BCACOFIRE', 16, 16, 2);
-  g_Frames_CreateWAD(nil, 'FRAMES_WEAPON_BARONFIRE', GameWAD+':TEXTURES\BBARONFIRE', 64, 16, 2);
-  g_Frames_CreateWAD(nil, 'FRAMES_WEAPON_MANCUBFIRE', GameWAD+':TEXTURES\BMANCUBFIRE', 64, 32, 2);
-  g_Frames_CreateWAD(nil, 'FRAMES_EXPLODE_ROCKET', GameWAD+':TEXTURES\EROCKET', 128, 128, 6);
-  g_Frames_CreateWAD(nil, 'FRAMES_EXPLODE_SKELFIRE', GameWAD+':TEXTURES\ESKELFIRE', 64, 64, 3);
-  g_Frames_CreateWAD(nil, 'FRAMES_EXPLODE_BFG', GameWAD+':TEXTURES\EBFG', 128, 128, 6);
-  g_Frames_CreateWAD(nil, 'FRAMES_EXPLODE_IMPFIRE', GameWAD+':TEXTURES\EIMPFIRE', 64, 64, 3);
-  g_Frames_CreateWAD(nil, 'FRAMES_BFGHIT', GameWAD+':TEXTURES\BFGHIT', 64, 64, 4);
-  g_Frames_CreateWAD(nil, 'FRAMES_FIRE', GameWAD+':TEXTURES\FIRE', 64, 128, 8);
-  g_Frames_CreateWAD(nil, 'FRAMES_FLAME', GameWAD+':TEXTURES\FLAME', 32, 32, 11);
-  g_Frames_CreateWAD(nil, 'FRAMES_EXPLODE_PLASMA', GameWAD+':TEXTURES\EPLASMA', 32, 32, 4, True);
-  g_Frames_CreateWAD(nil, 'FRAMES_EXPLODE_BSPFIRE', GameWAD+':TEXTURES\EBSPFIRE', 32, 32, 5);
-  g_Frames_CreateWAD(nil, 'FRAMES_EXPLODE_CACOFIRE', GameWAD+':TEXTURES\ECACOFIRE', 64, 64, 3);
-  g_Frames_CreateWAD(nil, 'FRAMES_EXPLODE_BARONFIRE', GameWAD+':TEXTURES\EBARONFIRE', 64, 64, 3);
-  g_Frames_CreateWAD(nil, 'FRAMES_SMOKE', GameWAD+':TEXTURES\SMOKE', 32, 32, 10, False);
-
   g_Texture_CreateWADEx('TEXTURE_SHELL_BULLET', GameWAD+':TEXTURES\EBULLET');
   g_Texture_CreateWADEx('TEXTURE_SHELL_SHELL', GameWAD+':TEXTURES\ESHELL');
 
@@ -1220,25 +1184,6 @@ begin
   g_Sound_Delete('SOUND_PLAYER_CASING2');
   g_Sound_Delete('SOUND_PLAYER_SHELL1');
   g_Sound_Delete('SOUND_PLAYER_SHELL2');
-
-  g_Texture_Delete('TEXTURE_WEAPON_ROCKET');
-  g_Frames_DeleteByName('FRAMES_WEAPON_BFG');
-  g_Frames_DeleteByName('FRAMES_WEAPON_PLASMA');
-  g_Frames_DeleteByName('FRAMES_WEAPON_IMPFIRE');
-  g_Frames_DeleteByName('FRAMES_WEAPON_BSPFIRE');
-  g_Frames_DeleteByName('FRAMES_WEAPON_CACOFIRE');
-  g_Frames_DeleteByName('FRAMES_WEAPON_MANCUBFIRE');
-  g_Frames_DeleteByName('FRAMES_EXPLODE_ROCKET');
-  g_Frames_DeleteByName('FRAMES_EXPLODE_BFG');
-  g_Frames_DeleteByName('FRAMES_EXPLODE_IMPFIRE');
-  g_Frames_DeleteByName('FRAMES_BFGHIT');
-  g_Frames_DeleteByName('FRAMES_FIRE');
-  g_Frames_DeleteByName('FRAMES_EXPLODE_PLASMA');
-  g_Frames_DeleteByName('FRAMES_EXPLODE_BSPFIRE');
-  g_Frames_DeleteByName('FRAMES_EXPLODE_CACOFIRE');
-  g_Frames_DeleteByName('FRAMES_SMOKE');
-  g_Frames_DeleteByName('FRAMES_WEAPON_BARONFIRE');
-  g_Frames_DeleteByName('FRAMES_EXPLODE_BARONFIRE');
 end;
 
 
@@ -1687,7 +1632,6 @@ begin
 
     Animation := nil;
     triggers := nil;
-    g_Texture_Get('TEXTURE_WEAPON_ROCKET', TextureID);
   end;
 
   Shots[find_id].SpawnerUID := SpawnerUID;
@@ -1699,7 +1643,7 @@ end;
 procedure g_Weapon_revf(x, y, xd, yd: Integer; SpawnerUID, TargetUID: Word;
   WID: Integer = -1; Silent: Boolean = False);
 var
-  find_id, FramesID: DWORD;
+  find_id: DWORD;
   dx, dy: Integer;
 begin
   if WID < 0 then
@@ -1726,8 +1670,7 @@ begin
 
     triggers := nil;
     target := TargetUID;
-    g_Frames_Get(FramesID, 'FRAMES_WEAPON_SKELFIRE');
-    Animation := TAnimation.Create(FramesID, True, 5);
+    Animation := TAnimationState.Create(True, 5, 2); // !!! put values into table
   end;
 
   Shots[find_id].SpawnerUID := SpawnerUID;
@@ -1739,7 +1682,7 @@ end;
 procedure g_Weapon_plasma(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1;
   Silent: Boolean = False);
 var
-  find_id, FramesID: DWORD;
+  find_id: DWORD;
   dx, dy: Integer;
 begin
   if WID < 0 then
@@ -1765,8 +1708,7 @@ begin
     throw(find_id, x+dx, y+dy, xd+dx, yd+dy, 16);
 
     triggers := nil;
-    g_Frames_Get(FramesID, 'FRAMES_WEAPON_PLASMA');
-    Animation := TAnimation.Create(FramesID, True, 5);
+    Animation := TAnimationState.Create(True, 5, 2); // !!! put values into table
   end;
 
   Shots[find_id].SpawnerUID := SpawnerUID;
@@ -1805,8 +1747,6 @@ begin
 
     triggers := nil;
     Animation := nil;
-    TextureID := 0;
-    g_Frames_Get(TextureID, 'FRAMES_FLAME');
   end;
 
   Shots[find_id].SpawnerUID := SpawnerUID;
@@ -1818,7 +1758,7 @@ end;
 procedure g_Weapon_ball1(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1;
   Silent: Boolean = False);
 var
-  find_id, FramesID: DWORD;
+  find_id: DWORD;
   dx, dy: Integer;
 begin
   if WID < 0 then
@@ -1844,8 +1784,7 @@ begin
     throw(find_id, x+dx, y+dy, xd+dx, yd+dy, 16);
 
     triggers := nil;
-    g_Frames_Get(FramesID, 'FRAMES_WEAPON_IMPFIRE');
-    Animation := TAnimation.Create(FramesID, True, 4);
+    Animation := TAnimationState.Create(True, 4, 2); // !!! put values into table
   end;
 
   Shots[find_id].SpawnerUID := SpawnerUID;
@@ -1857,7 +1796,7 @@ end;
 procedure g_Weapon_ball2(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1;
   Silent: Boolean = False);
 var
-  find_id, FramesID: DWORD;
+  find_id: DWORD;
   dx, dy: Integer;
 begin
   if WID < 0 then
@@ -1883,8 +1822,7 @@ begin
     throw(find_id, x+dx, y+dy, xd+dx, yd+dy, 16);
 
     triggers := nil;
-    g_Frames_Get(FramesID, 'FRAMES_WEAPON_CACOFIRE');
-    Animation := TAnimation.Create(FramesID, True, 4);
+    Animation := TAnimationState.Create(True, 4, 2); // !!! put values into table
   end;
 
   Shots[find_id].SpawnerUID := SpawnerUID;
@@ -1896,7 +1834,7 @@ end;
 procedure g_Weapon_ball7(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1;
   Silent: Boolean = False);
 var
-  find_id, FramesID: DWORD;
+  find_id: DWORD;
   dx, dy: Integer;
 begin
   if WID < 0 then
@@ -1922,8 +1860,7 @@ begin
     throw(find_id, x+dx, y+dy, xd+dx, yd+dy, 16);
 
     triggers := nil;
-    g_Frames_Get(FramesID, 'FRAMES_WEAPON_BARONFIRE');
-    Animation := TAnimation.Create(FramesID, True, 4);
+    Animation := TAnimationState.Create(True, 4, 2); // !!! put values into table
   end;
 
   Shots[find_id].SpawnerUID := SpawnerUID;
@@ -1935,7 +1872,7 @@ end;
 procedure g_Weapon_aplasma(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1;
   Silent: Boolean = False);
 var
-  find_id, FramesID: DWORD;
+  find_id: DWORD;
   dx, dy: Integer;
 begin
   if WID < 0 then
@@ -1962,8 +1899,7 @@ begin
 
     triggers := nil;
 
-    g_Frames_Get(FramesID, 'FRAMES_WEAPON_BSPFIRE');
-    Animation := TAnimation.Create(FramesID, True, 4);
+    Animation := TAnimationState.Create(True, 4, 2); // !!! put values into table
   end;
 
   Shots[find_id].SpawnerUID := SpawnerUID;
@@ -1975,7 +1911,7 @@ end;
 procedure g_Weapon_manfire(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1;
   Silent: Boolean = False);
 var
-  find_id, FramesID: DWORD;
+  find_id: DWORD;
   dx, dy: Integer;
 begin
   if WID < 0 then
@@ -2002,8 +1938,7 @@ begin
 
     triggers := nil;
 
-    g_Frames_Get(FramesID, 'FRAMES_WEAPON_MANCUBFIRE');
-    Animation := TAnimation.Create(FramesID, True, 4);
+    Animation := TAnimationState.Create(True, 4, 2); // !!! put values into table
   end;
 
   Shots[find_id].SpawnerUID := SpawnerUID;
@@ -2015,7 +1950,7 @@ end;
 procedure g_Weapon_bfgshot(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1;
   Silent: Boolean = False);
 var
-  find_id, FramesID: DWORD;
+  find_id: DWORD;
   dx, dy: Integer;
 begin
   if WID < 0 then
@@ -2041,8 +1976,7 @@ begin
     throw(find_id, x+dx, y+dy, xd+dx, yd+dy, 16);
 
     triggers := nil;
-    g_Frames_Get(FramesID, 'FRAMES_WEAPON_BFG');
-    Animation := TAnimation.Create(FramesID, True, 6);
+    Animation := TAnimationState.Create(True, 6, 2); // !!! put values into table
   end;
 
   Shots[find_id].SpawnerUID := SpawnerUID;
@@ -2144,6 +2078,7 @@ var
   Anim: TAnimation;
   t: DWArray;
   st: Word;
+  TextureID: DWORD = DWORD(-1);
   s: String;
   o: TObj;
   spl: Boolean;
@@ -2221,6 +2156,8 @@ begin
 
       cx := Obj.X + (Obj.Rect.Width div 2);
       cy := Obj.Y + (Obj.Rect.Height div 2);
+
+      TextureID := DWORD(-1); // !!!
 
       case ShotType of
         WEAPON_ROCKETLAUNCHER, WEAPON_SKEL_FIRE: // Ракеты и снаряды Скелета
@@ -2406,6 +2343,7 @@ begin
 
             if (gTime mod LongWord(tf) = 0) then
             begin
+              g_Frames_Get(TextureID, 'FRAMES_FLAME');
               Anim := TAnimation.Create(TextureID, False, 2 + Random(2));
               Anim.Alpha := 0;
               case Stopped of
@@ -2607,7 +2545,6 @@ end;
 procedure g_Weapon_LoadState (st: TStream);
 var
   count, tc, i, j: Integer;
-  dw: LongWord;
 begin
   if (st = nil) then exit;
 
@@ -2642,48 +2579,39 @@ begin
     Shots[i].Stopped := utils.readByte(st);
 
     // Установка текстуры или анимации
-    Shots[i].TextureID := DWORD(-1);
     Shots[i].Animation := nil;
 
     case Shots[i].ShotType of
       WEAPON_ROCKETLAUNCHER, WEAPON_SKEL_FIRE:
         begin
-          g_Texture_Get('TEXTURE_WEAPON_ROCKET', Shots[i].TextureID);
         end;
       WEAPON_PLASMA:
         begin
-          g_Frames_Get(dw, 'FRAMES_WEAPON_PLASMA');
-          Shots[i].Animation := TAnimation.Create(dw, True, 5);
+          Shots[i].Animation := TAnimationState.Create(True, 5, 2); // !!! put values into table
         end;
       WEAPON_BFG:
         begin
-          g_Frames_Get(dw, 'FRAMES_WEAPON_BFG');
-          Shots[i].Animation := TAnimation.Create(dw, True, 6);
+          Shots[i].Animation := TAnimationState.Create(True, 6, 2); // !!! put values into table
         end;
       WEAPON_IMP_FIRE:
         begin
-          g_Frames_Get(dw, 'FRAMES_WEAPON_IMPFIRE');
-          Shots[i].Animation := TAnimation.Create(dw, True, 4);
+          Shots[i].Animation := TAnimationState.Create(True, 4, 2); // !!! put values into table
         end;
       WEAPON_BSP_FIRE:
         begin
-          g_Frames_Get(dw, 'FRAMES_WEAPON_BSPFIRE');
-          Shots[i].Animation := TAnimation.Create(dw, True, 4);
+          Shots[i].Animation := TAnimationState.Create(True, 4, 2); // !!! put values into table
         end;
       WEAPON_CACO_FIRE:
         begin
-          g_Frames_Get(dw, 'FRAMES_WEAPON_CACOFIRE');
-          Shots[i].Animation := TAnimation.Create(dw, True, 4);
+          Shots[i].Animation := TAnimationState.Create(True, 4, 2); // !!! put values into table
         end;
       WEAPON_BARON_FIRE:
         begin
-          g_Frames_Get(dw, 'FRAMES_WEAPON_BARONFIRE');
-          Shots[i].Animation := TAnimation.Create(dw, True, 4);
+          Shots[i].Animation := TAnimationState.Create(True, 4, 2); // !!! put values into table
         end;
       WEAPON_MANCUB_FIRE:
         begin
-          g_Frames_Get(dw, 'FRAMES_WEAPON_MANCUBFIRE');
-          Shots[i].Animation := TAnimation.Create(dw, True, 4);
+          Shots[i].Animation := TAnimationState.Create(True, 4, 2); // !!! put values into table
         end;
     end;
   end;
@@ -2694,6 +2622,7 @@ var
   cx, cy: Integer;
   Anim: TAnimation;
   s: string;
+  TextureID: DWORD = DWORD(-1);
 begin
   if Shots = nil then
     Exit;
