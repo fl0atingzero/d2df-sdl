@@ -650,7 +650,7 @@ begin
     Pl.Name := TmpName;
   end;
 
-  if TmpModel <> Pl.Model.Name then
+  if TmpModel <> Pl.Model.GetName() then
     Pl.SetModel(TmpModel);
 
   MH_SEND_PlayerSettings(Pl.UID, TmpModel);
@@ -1242,7 +1242,7 @@ begin
   NetOut.Write(PID);
   NetOut.Write(Pl.Name);
   if Mdl = '' then
-    NetOut.Write(Pl.Model.Name)
+    NetOut.Write(Pl.Model.GetName())
   else
     NetOut.Write(Mdl);
   NetOut.Write(Pl.FColor.R);
@@ -2499,7 +2499,7 @@ begin
     Pl.Name := TmpName;
   end;
 
-  if TmpModel <> Pl.Model.Name then
+  if TmpModel <> Pl.Model.GetName() then
     Pl.SetModel(TmpModel);
 end;
 

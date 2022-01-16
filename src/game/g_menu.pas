@@ -324,7 +324,7 @@ begin
 
   with TGUIModelView(g_GUI_GetWindow('OptionsPlayersP1Menu').GetControl('mvP1Model')) do
   begin
-    gPlayer1Settings.Model := Model.Name;
+    gPlayer1Settings.Model := Model.GetName();
     gPlayer1Settings.Color := Model.Color;
   end;
 
@@ -335,7 +335,7 @@ begin
                                   TEAM_RED, TEAM_BLUE);
   with TGUIModelView(g_GUI_GetWindow('OptionsPlayersP2Menu').GetControl('mvP2Model')) do
   begin
-    gPlayer2Settings.Model := Model.Name;
+    gPlayer2Settings.Model := Model.GetName();
     gPlayer2Settings.Color := Model.Color;
   end;
 
@@ -1386,8 +1386,7 @@ begin
   with TGUIModelView(g_ActiveWindow.GetControl('mv'+s+'Model')) do
   begin
     NextAnim();
-    Model.GetCurrentAnimation.Loop := True;
-    Model.GetCurrentAnimationMask.Loop := True;
+    Model.AnimState.Loop := True;
   end;
 end;
 

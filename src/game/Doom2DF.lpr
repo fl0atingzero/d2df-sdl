@@ -951,6 +951,7 @@ end;
     {$IFDEF ENABLE_HOLMES}
       InitHolmes;
     {$ENDIF}
+    g_PlayerModel_LoadAll;
     r_Render_Load;
     g_Game_Init;
     {$IFNDEF HEADLESS}
