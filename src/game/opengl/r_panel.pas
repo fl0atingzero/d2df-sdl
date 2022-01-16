@@ -28,63 +28,64 @@ implementation
     {$INCLUDE ../nogl/noGLuses.inc}
     SysUtils, Classes, Math,
     r_graphics, g_options, r_animations, r_textures,
-    g_base, g_basic
+    g_base, g_basic, g_map
   ;
 
   // TODO: remove WITH operator
 
   procedure r_Panel_Draw (constref p: TPanel; hasAmbient: Boolean; constref ambColor: TDFColor);
-    var xx, yy: Integer; NoTextureID: DWORD; NW, NH: Word;
+    var xx, yy: Integer; NoTextureID, TextureID, FramesID: DWORD; NW, NH: Word; Texture: Cardinal; IsAnim: Boolean;
   begin
-    with p do
+    if {p.Enabled and} (p.FCurTexture >= 0) and (p.Width > 0) and (p.Height > 0) and (p.Alpha < 255) {and g_Collide(X, Y, Width, Height, sX, sY, sWidth, sHeight)} then
     begin
-      if {Enabled and} (FCurTexture >= 0) and (Width > 0) and (Height > 0) and (Alpha < 255) {and g_Collide(X, Y, Width, Height, sX, sY, sWidth, sHeight)} then
+      Texture := p.TextureIDs[p.FCurTexture].Texture;
+      IsAnim := p.TextureIDs[p.FCurTexture].Anim;
+      if IsAnim then
       begin
-        if TextureIDs[FCurTexture].Anim then
+        if p.TextureIDs[p.FCurTexture].AnTex <> nil then
         begin
-          if TextureIDs[FCurTexture].AnTex = nil then
-            Exit;
-          for xx := 0 to Width div TextureWidth - 1 do
-            for yy := 0 to Height div TextureHeight - 1 do
-              r_Animation_Draw(TextureIDs[FCurTexture].AnTex, X + xx * TextureWidth, Y + yy * TextureHeight, TMirrorType.None);
+          FramesID := Textures[Texture].FramesID;
+          for xx := 0 to p.Width div p.TextureWidth - 1 do
+            for yy := 0 to p.Height div p.TextureHeight - 1 do
+              r_AnimationState_Draw(FramesID, p.TextureIDs[p.FCurTexture].AnTex, p.X + xx * p.TextureWidth, p.Y + yy * p.TextureHeight, TMirrorType.None);
         end
-        else
-        begin
-          case TextureIDs[FCurTexture].Tex of
-            LongWord(TEXTURE_SPECIAL_WATER): e_DrawFillQuad(X, Y, X + Width - 1, Y + Height - 1, 0, 0, 255, 0, TBlending.Filter);
-            LongWord(TEXTURE_SPECIAL_ACID1): e_DrawFillQuad(X, Y, X + Width - 1, Y + Height - 1, 0, 230, 0, 0, TBlending.Filter);
-            LongWord(TEXTURE_SPECIAL_ACID2): e_DrawFillQuad(X, Y, X + Width - 1, Y + Height - 1, 230, 0, 0, 0, TBlending.Filter);
-            LongWord(TEXTURE_NONE):
-              if g_Texture_Get('NOTEXTURE', NoTextureID) then
-              begin
-                e_GetTextureSize(NoTextureID, @NW, @NH);
-                e_DrawFill(NoTextureID, X, Y, Width div NW, Height div NH, 0, False, False);
-              end
-              else
-              begin
-                xx := X + (Width div 2);
-                yy := Y + (Height div 2);
-                e_DrawFillQuad(X, Y, xx, yy, 255, 0, 255, 0);
-                e_DrawFillQuad(xx, Y, X + Width - 1, yy, 255, 255, 0, 0);
-                e_DrawFillQuad(X, yy, xx, Y + Height - 1, 255, 255, 0, 0);
-                e_DrawFillQuad(xx, yy, X + Width - 1, Y + Height - 1, 255, 0, 255, 0);
-              end;
+      end
+      else
+      begin
+        TextureID := Textures[Texture].TextureID; // GL texture
+        case TextureID of
+          LongWord(TEXTURE_SPECIAL_WATER): e_DrawFillQuad(p.X, p.Y, p.X + p.Width - 1, p.Y + p.Height - 1, 0, 0, 255, 0, TBlending.Filter);
+          LongWord(TEXTURE_SPECIAL_ACID1): e_DrawFillQuad(p.X, p.Y, p.X + p.Width - 1, p.Y + p.Height - 1, 0, 230, 0, 0, TBlending.Filter);
+          LongWord(TEXTURE_SPECIAL_ACID2): e_DrawFillQuad(p.X, p.Y, p.X + p.Width - 1, p.Y + p.Height - 1, 230, 0, 0, 0, TBlending.Filter);
+          LongWord(TEXTURE_NONE):
+            if g_Texture_Get('NOTEXTURE', NoTextureID) then
+            begin
+              e_GetTextureSize(NoTextureID, @NW, @NH);
+              e_DrawFill(NoTextureID, p.X, p.Y, p.Width div NW, p.Height div NH, 0, False, False);
+            end
             else
             begin
-              if not movingActive then
-                e_DrawFill(TextureIDs[FCurTexture].Tex, X, Y, Width div TextureWidth, Height div TextureHeight, Alpha, True, Blending, hasAmbient)
-              else
-                e_DrawFillX(TextureIDs[FCurTexture].Tex, X, Y, Width, Height, Alpha, True, Blending, g_dbg_scale, hasAmbient);
-              if hasAmbient then
-                e_AmbientQuad(X, Y, Width, Height, ambColor.r, ambColor.g, ambColor.b, ambColor.a);
-            end
-          end
+              xx := p.X + (p.Width div 2);
+              yy := p.Y + (p.Height div 2);
+              e_DrawFillQuad(p.X, p.Y, xx, yy, 255, 0, 255, 0);
+              e_DrawFillQuad(xx, p.Y, p.X + p.Width - 1, yy, 255, 255, 0, 0);
+              e_DrawFillQuad(p.X, yy, xx, p.Y + p.Height - 1, 255, 255, 0, 0);
+              e_DrawFillQuad(xx, yy, p.X + p.Width - 1, p.Y + p.Height - 1, 255, 0, 255, 0);
+            end;
+        else
+          if not p.movingActive then
+            e_DrawFill(TextureID, p.X, p.Y, p.Width div p.TextureWidth, p.Height div p.TextureHeight, p.Alpha, True, p.Blending, hasAmbient)
+          else
+            e_DrawFillX(TextureID, p.X, p.Y, p.Width, p.Height, p.Alpha, True, p.Blending, g_dbg_scale, hasAmbient);
+          if hasAmbient then
+            e_AmbientQuad(p.X, p.Y, p.Width, p.Height, ambColor.r, ambColor.g, ambColor.b, ambColor.a);
         end
       end
     end
   end;
 
   procedure r_Panel_DrawShadowVolume (constref p: TPanel; lightX, lightY: Integer; radius: Integer);
+    var Texture: Cardinal;
 
     procedure extrude (x: Integer; y: Integer);
     begin
@@ -105,32 +106,30 @@ implementation
     end;
 
   begin
-    with p do
+    if radius < 4 then exit;
+    if p.Enabled and (p.FCurTexture >= 0) and (p.Width > 0) and (p.Height > 0) and (p.Alpha < 255) {and g_Collide(X, Y, Width, Height, sX, sY, sWidth, sHeight)} then
     begin
-      if radius < 4 then exit;
-      if Enabled and (FCurTexture >= 0) and (Width > 0) and (Height > 0) and (Alpha < 255) {and g_Collide(X, Y, Width, Height, sX, sY, sWidth, sHeight)} then
+      if not p.TextureIDs[p.FCurTexture].Anim then
       begin
-        if not TextureIDs[FCurTexture].Anim then
-        begin
-          case TextureIDs[FCurTexture].Tex of
-            LongWord(TEXTURE_SPECIAL_WATER): exit;
-            LongWord(TEXTURE_SPECIAL_ACID1): exit;
-            LongWord(TEXTURE_SPECIAL_ACID2): exit;
-            LongWord(TEXTURE_NONE): exit;
-          end;
+        Texture := p.TextureIDs[p.FCurTexture].Texture;
+        case Textures[Texture].TextureID of
+          LongWord(TEXTURE_SPECIAL_WATER): exit;
+          LongWord(TEXTURE_SPECIAL_ACID1): exit;
+          LongWord(TEXTURE_SPECIAL_ACID2): exit;
+          LongWord(TEXTURE_NONE): exit;
         end;
-        if (X + Width < lightX - radius) then exit;
-        if (Y + Height < lightY - radius) then exit;
-        if (X > lightX + radius) then exit;
-        if (Y > lightY + radius) then exit;
-        //e_DrawFill(TextureIDs[FCurTexture].Tex, X, Y, Width div TextureWidth, Height div TextureHeight, Alpha, True, Blending);
-        glBegin(GL_QUADS);
-          drawLine(x,         y,          x + width, y); // top
-          drawLine(x + width, y,          x + width, y + height); // right
-          drawLine(x + width, y + height, x,         y + height); // bottom
-          drawLine(x,         y + height, x,         y); // left
-        glEnd;
-      end
+      end;
+      if (p.X + p.Width < lightX - radius) then exit;
+      if (p.Y + p.Height < lightY - radius) then exit;
+      if (p.X > lightX + radius) then exit;
+      if (p.Y > lightY + radius) then exit;
+      //e_DrawFill(TextureIDs[FCurTexture].Tex, X, Y, Width div TextureWidth, Height div TextureHeight, Alpha, True, Blending);
+      glBegin(GL_QUADS);
+        drawLine(p.x,           p.y,            p.x + p.width, p.y); // top
+        drawLine(p.x + p.width, p.y,            p.x + p.width, p.y + p.height); // right
+        drawLine(p.x + p.width, p.y + p.height, p.x,           p.y + p.height); // bottom
+        drawLine(p.x,           p.y + p.height, p.x,           p.y); // left
+      glEnd;
     end
   end;
 
