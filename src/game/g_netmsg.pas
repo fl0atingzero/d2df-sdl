@@ -754,7 +754,7 @@ begin
     Pl.Name := TmpName;
   end;
 
-  if TmpModel <> Pl.Model.Name then
+  if TmpModel <> Pl.Model.GetName() then
     Pl.SetModel(TmpModel);
 
   if (TmpWeapSwitch <> Pl.WeapSwitchMode) then
@@ -1391,7 +1391,7 @@ begin
   NetOut.Write(PID);
   NetOut.Write(Pl.Name);
   if Mdl = '' then
-    NetOut.Write(Pl.Model.Name)
+    NetOut.Write(Pl.Model.GetName())
   else
     NetOut.Write(Mdl);
   NetOut.Write(Pl.FColor.R);
@@ -2677,7 +2677,7 @@ begin
     Pl.Name := TmpName;
   end;
 
-  if TmpModel <> Pl.Model.Name then
+  if TmpModel <> Pl.Model.GetName() then
     Pl.SetModel(TmpModel);
 end;
 
