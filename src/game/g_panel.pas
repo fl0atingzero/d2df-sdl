@@ -41,8 +41,6 @@ type
     const
   private
     mGUID: Integer; // will be assigned in "g_map.pas"
-    FTextureWidth:    Word;
-    FTextureHeight:   Word;
     FAlpha:           Byte;
     FBlending:        Boolean;
     FTextureIDs:      ATextureID;
@@ -189,8 +187,6 @@ type
 
     (* private state *)
     property Alpha: Byte read FAlpha;
-    property TextureWidth: Word read FTextureWidth;
-    property TextureHeight: Word read FTextureHeight;
     property Blending: Boolean read FBlending;
     property TextureIDs: ATextureID read FTextureIDs;
 
@@ -357,15 +353,11 @@ begin
   if ({PanelRec.TextureNum}tnum > High(Textures)) then
   begin
     e_WriteLog(Format('WTF?! tnum is out of limits! (%d : %d)', [tnum, High(Textures)]), TMsgType.Warning);
-    FTextureWidth := 2;
-    FTextureHeight := 2;
     FAlpha := 0;
     FBlending := ByteBool(0);
   end
   else if not g_Map_IsSpecialTexture(Textures[{PanelRec.TextureNum}tnum].TextureName) then
   begin
-    FTextureWidth := Textures[{PanelRec.TextureNum}tnum].Width;
-    FTextureHeight := Textures[{PanelRec.TextureNum}tnum].Height;
     FAlpha := PanelRec.Alpha;
     FBlending := ByteBool(PanelRec.Flags and PANEL_FLAG_BLENDING);
   end;
@@ -887,12 +879,12 @@ end;
 function TPanel.GetTextureID(): DWORD;
 begin
   Result := LongWord(TEXTURE_NONE);
-  if (FCurTexture >= 0) then
-  begin
-    if FTextureIDs[FCurTexture].Anim then
-      Result := Textures[FTextureIDs[FCurTexture].Texture].FramesID
-    else
-      Result := Textures[FTextureIDs[FCurTexture].Texture].TextureID
+//  if (FCurTexture >= 0) then
+//  begin
+//    if FTextureIDs[FCurTexture].Anim then
+//      Result := Textures[FTextureIDs[FCurTexture].Texture].FramesID
+//    else
+//      Result := Textures[FTextureIDs[FCurTexture].Texture].TextureID
 {
     // !!! old behavior
     if FTextureIDs[FCurTexture].Anim then
@@ -900,7 +892,7 @@ begin
     else
       Result := FTextureIDs[FCurTexture].Tex;
 }
-  end
+//  end
 end;
 
 function TPanel.GetTextureCount(): Integer;
