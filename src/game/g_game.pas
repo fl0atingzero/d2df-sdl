@@ -86,7 +86,6 @@ procedure g_Game_FreeData();
 procedure g_Game_Update();
 procedure g_Game_PreUpdate();
 procedure g_Game_Quit();
-procedure g_Game_SetupScreenSize();
 function  g_Game_ModeToText(Mode: Byte): string;
 function  g_Game_TextToMode(Mode: string): Byte;
 procedure g_Game_ExecuteEvent(Name: String);
@@ -2561,45 +2560,6 @@ begin
   e_WriteLog(Format(_lc[I_SIMPLE_ERROR], [Text]), TMsgType.Warning);
 end;
 
-procedure g_Game_SetupScreenSize();
-const
-  RES_FACTOR = 4.0 / 3.0;
-var
-  s: Single;
-  rf: Single;
-  bw, bh: Word;
-begin
-// Размер экранов игроков:
-  gPlayerScreenSize.X := gScreenWidth-196;
-  if (gPlayer1 <> nil) and (gPlayer2 <> nil) then
-    gPlayerScreenSize.Y := gScreenHeight div 2
-  else
-    gPlayerScreenSize.Y := gScreenHeight;
-
-// Размер заднего плана:
-  if BackID <> DWORD(-1) then
-  begin
-    s := SKY_STRETCH;
-    if (gScreenWidth*s > gMapInfo.Width) or
-       (gScreenHeight*s > gMapInfo.Height) then
-    begin
-      gBackSize.X := gScreenWidth;
-      gBackSize.Y := gScreenHeight;
-    end
-    else
-    begin
-      e_GetTextureSize(BackID, @bw, @bh);
-      rf := Single(bw) / Single(bh);
-      if (rf > RES_FACTOR) then bw := Round(Single(bh) * RES_FACTOR)
-      else if (rf < RES_FACTOR) then bh := Round(Single(bw) / RES_FACTOR);
-      s := Max(gScreenWidth / bw, gScreenHeight / bh);
-      if (s < 1.0) then s := 1.0;
-      gBackSize.X := Round(bw*s);
-      gBackSize.Y := Round(bh*s);
-    end;
-  end;
-end;
-
 procedure g_Game_AddPlayer(Team: Byte = TEAM_NONE);
 begin
   if ((not gGameOn) and (gState <> STATE_INTERCUSTOM))
@@ -2761,9 +2721,6 @@ begin
 
   g_Game_ExecuteEvent('ongamestart');
 
-// Установка размеров окон игроков:
-  g_Game_SetupScreenSize();
-
 // Создание первого игрока:
   gPlayer1 := g_Player_Get(g_Player_Create(gPlayer1Settings.Model,
                                            gPlayer1Settings.Color,
@@ -2844,9 +2801,6 @@ begin
   gSpectLatchPID2 := 0;
 
   g_Game_ExecuteEvent('ongamestart');
-
-// Установка размеров окон игроков:
-  g_Game_SetupScreenSize();
 
 // Режим наблюдателя:
   if nPlayers = 0 then
@@ -2948,9 +2902,6 @@ begin
   gSpectLatchPID2 := 0;
 
   g_Game_ExecuteEvent('ongamestart');
-
-// Установка размеров окна игрока
-  g_Game_SetupScreenSize();
 
 // Режим наблюдателя:
   if nPlayers = 0 then
@@ -3062,9 +3013,6 @@ begin
   gShowMap := False;
 
   g_Game_ExecuteEvent('ongamestart');
-
-// Установка размеров окон игроков:
-  g_Game_SetupScreenSize();
 
   NetState := NET_STATE_AUTH;
 
