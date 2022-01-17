@@ -5737,33 +5737,24 @@ begin
 end;
 
 procedure g_TakeScreenShot(Filename: string = '');
-  var s: TStream; t: TDateTime; dir, date, name: String;
+  var t: TDateTime; dir, date, name: String;
 begin
-  if e_NoGraphics then Exit;
-  try
-    dir := e_GetWriteableDir(ScreenshotDirs);
+  if e_NoGraphics then
+    Exit;
 
-    if Filename = '' then
-    begin
-      t := Now;
-      DateTimeToString(date, 'yyyy-mm-dd-hh-nn-ss', t);
-      Filename := 'screenshot-' + date;
-    end;
-    
-    name := e_CatPath(dir, Filename + '.png');
-    s := createDiskFile(name);
-    try
-      e_MakeScreenshot(s, gScreenWidth, gScreenHeight);
-      s.Free;
-      g_Console_Add(Format(_lc[I_CONSOLE_SCREENSHOT], [name]))
-    except
-      g_Console_Add(Format(_lc[I_CONSOLE_ERROR_WRITE], [name]));
-      s.Free;
-      DeleteFile(name)
-    end
-  except
-    g_Console_Add('oh shit, i can''t create screenshot!')
-  end
+  dir := e_GetWriteableDir(ScreenshotDirs);
+  if Filename = '' then
+  begin
+    t := Now;
+    DateTimeToString(date, 'yyyy-mm-dd-hh-nn-ss', t);
+    Filename := 'screenshot-' + date;
+  end;
+
+  name := e_CatPath(dir, Filename + '.png');
+  if r_Render_WriteScreenShot(name) then
+    g_Console_Add(Format(_lc[I_CONSOLE_SCREENSHOT], [name]))
+  else
+    g_Console_Add(Format(_lc[I_CONSOLE_ERROR_WRITE], [name]));
 end;
 
 procedure g_Game_InGameMenu(Show: Boolean);
