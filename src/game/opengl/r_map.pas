@@ -34,7 +34,7 @@ implementation
 
   uses
     {$INCLUDE ../nogl/noGLuses.inc}
-    SysUtils, Classes, Math, e_log, wadreader, CONFIG,
+    SysUtils, Classes, Math, e_log, wadreader, CONFIG, utils,
     r_graphics, r_animations, r_textures,
     g_base, g_basic, g_game, g_options,
     g_map
@@ -44,6 +44,7 @@ implementation
     RenTextures: array of record
       ID: DWORD;
       Width, Height: WORD;
+      Anim: Boolean;
     end;
 
   procedure r_Map_LoadTextures;
@@ -67,9 +68,11 @@ implementation
       SetLength(RenTextures, n);
       for i := 0 to n - 1 do
       begin
+        // e_LogWritefln('r_Map_LoadTextures: -> [%s] :: [%s]', [Textures[i].FullName, Textures[i].TextureName]);
         RenTextures[i].ID := LongWord(TEXTURE_NONE);
         RenTextures[i].Width := 0;
         RenTextures[i].Height := 0;
+        RenTextures[i].Anim := False;
         case Textures[i].TextureName of
           TEXTURE_NAME_WATER: RenTextures[i].ID := LongWord(TEXTURE_SPECIAL_WATER);
           TEXTURE_NAME_ACID1: RenTextures[i].ID := LongWord(TEXTURE_SPECIAL_ACID1);
@@ -82,7 +85,7 @@ implementation
           begin
             if WAD.GetResource(ResName, ResData, ResLen, log) then
             begin
-              if Textures[i].Anim then
+              if IsWadData(ResData, ResLen) then
               begin
                 WADz := TWADFile.Create();
                 if WADz.ReadMemory(ResData, ResLen) then
@@ -105,7 +108,9 @@ implementation
                       begin
                         if WADz.GetResource('TEXTURES/' + TextureResource, ReszData, ReszLen) then
                         begin
-                          if not g_Frames_CreateMemory(@RenTextures[i].ID, '', ReszData, ReszLen, Width, Height, FramesCount, BackAnim) then
+                          if g_Frames_CreateMemory(@RenTextures[i].ID, '', ReszData, ReszLen, Width, Height, FramesCount, BackAnim) then
+                            RenTextures[i].Anim := True
+                          else
                             e_LogWritefln('r_Map_LoadTextures: failed to create frames object (%s)', [Textures[i].FullName]);
                           FreeMem(ReszData)
                         end
@@ -258,7 +263,7 @@ end;
     if {p.Enabled and} (p.FCurTexture >= 0) and (p.Width > 0) and (p.Height > 0) and (p.Alpha < 255) {and g_Collide(X, Y, Width, Height, sX, sY, sWidth, sHeight)} then
     begin
       Texture := p.TextureIDs[p.FCurTexture].Texture;
-      IsAnim := p.TextureIDs[p.FCurTexture].Anim;
+      IsAnim := RenTextures[Texture].Anim;
       if IsAnim then
       begin
         if p.TextureIDs[p.FCurTexture].AnTex <> nil then
@@ -332,10 +337,9 @@ end;
     if radius < 4 then exit;
     if p.Enabled and (p.FCurTexture >= 0) and (p.Width > 0) and (p.Height > 0) and (p.Alpha < 255) {and g_Collide(X, Y, Width, Height, sX, sY, sWidth, sHeight)} then
     begin
-      if not p.TextureIDs[p.FCurTexture].Anim then
+      Texture := p.TextureIDs[p.FCurTexture].Texture;
+      if not RenTextures[Texture].Anim then
       begin
-        Texture := p.TextureIDs[p.FCurTexture].Texture;
-        // case Textures[Texture].TextureID of
         case RenTextures[Texture].ID of
           LongWord(TEXTURE_SPECIAL_WATER): exit;
           LongWord(TEXTURE_SPECIAL_ACID1): exit;
