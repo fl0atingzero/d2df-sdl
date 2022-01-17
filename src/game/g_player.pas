@@ -624,10 +624,13 @@ procedure g_Bot_RemoveAll();
 implementation
 
 uses
-{$IFDEF ENABLE_HOLMES}
-  g_holmes,
-{$ENDIF}
-  e_log, g_map, g_items, g_console, g_gfx, Math, r_playermodel, r_gfx,
+  {$IFDEF ENABLE_HOLMES}
+    g_holmes,
+  {$ENDIF}
+  {$IFNDEF HEADLESS}
+    r_render,
+  {$ENDIF}
+  e_log, g_map, g_items, g_console, g_gfx, Math,
   g_options, g_triggers, g_menu, g_game, g_grid, e_res,
   wadreader, g_monsters, CONFIG, g_language,
   g_net, g_netmsg,
@@ -1631,7 +1634,14 @@ begin
       Color := fColor;
       alive := True;
       g_Obj_Init(@Obj);
-      Obj.Rect := r_PlayerModel_GetGibRect(ModelID, GibID);
+      {$IFNDEF HEADLESS}
+        Obj.Rect := r_Render_GetGibRect(ModelID, GibID);
+      {$ELSE}
+        Obj.Rect.X := 16;
+        Obj.Rect.Y := 16;
+        Obj.Rect.Width := 16;
+        Obj.Rect.Height := 16;
+      {$ENDIF}
       Obj.X := fX - Obj.Rect.X - (Obj.Rect.Width div 2);
       Obj.Y := fY - Obj.Rect.Y - (Obj.Rect.Height div 2);
       g_Obj_PushA(@Obj, 25 + Random(10), Random(361));
@@ -3909,7 +3919,7 @@ begin
 
 // Анимация возрождения:
   if (not gLoadGameMode) and (not Silent) then
-    r_GFX_OnceAnim(
+    g_GFX_QueueEffect(
       R_GFX_TELEPORT_FAST,
       FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2)-32,
       FObj.Y+PLAYER_RECT.Y+(PLAYER_RECT.Height div 2)-32
@@ -4109,7 +4119,7 @@ begin
   if not silent then
   begin
     g_Sound_PlayExAt('SOUND_GAME_TELEPORT', FObj.X, FObj.Y);
-    r_GFX_OnceAnim(
+    g_GFX_QueueEffect(
       R_GFX_TELEPORT_FAST,
       FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2)-32,
       FObj.Y+PLAYER_RECT.Y+(PLAYER_RECT.Height div 2)-32
@@ -4161,7 +4171,7 @@ begin
 
   if not silent then
   begin
-    r_GFX_OnceAnim(
+    g_GFX_QueueEffect(
       R_GFX_TELEPORT_FAST,
       FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2)-32,
       FObj.Y+PLAYER_RECT.Y+(PLAYER_RECT.Height div 2)-32
@@ -5662,7 +5672,7 @@ begin
 
   for i := 1 to Times do
   begin
-    r_GFX_OnceAnim(
+    g_GFX_QueueEffect(
       R_GFX_SMOKE_TRANS,
       Obj.X+Obj.Rect.X+Random(Obj.Rect.Width+Times*2)-(R_GFX_SMOKE_WIDTH div 2),
       Obj.Y+Obj.Rect.Height-4+Random(8+Times*2)
@@ -5678,7 +5688,7 @@ begin
 
   for i := 1 to Times do
   begin
-    r_GFX_OnceAnim(
+    g_GFX_QueueEffect(
       R_GFX_FLAME,
       Obj.X+Obj.Rect.X+Random(Obj.Rect.Width+Times*2)-(R_GFX_FLAME_WIDTH div 2),
       Obj.Y+8+Random(8+Times*2)
