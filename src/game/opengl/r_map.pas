@@ -263,7 +263,7 @@ end;
           else
             Mirror := TMirrorType.None;
           dx := IfThen(f.Direction = TDirection.D_LEFT, -1, +1);
-          r_AnimationState_Draw(FlagFrames[i], FlagAnim, f.Obj.X + dx, f.Obj.Y + 1, Mirror);
+          r_AnimationState_Draw(FlagFrames[i], FlagAnim, f.Obj.X + dx, f.Obj.Y + 1, 0, Mirror, False);
           if g_debug_Frames then
             e_DrawQuad(f.Obj.X + f.Obj.Rect.X, f.Obj.Y + f.Obj.Rect.Y, f.Obj.X + f.Obj.Rect.X + f.Obj.Rect.Width - 1, f.Obj.Y + f.Obj.Rect.Y + f.Obj.Rect.Height - 1, 0, 255, 0)
         end
@@ -287,7 +287,7 @@ end;
           h := RenTextures[Texture].Height;
           for xx := 0 to p.Width div w - 1 do
             for yy := 0 to p.Height div h - 1 do
-              r_AnimationState_Draw(FramesID, p.TextureIDs[p.FCurTexture].AnTex, p.X + xx * w, p.Y + yy * h, TMirrorType.None);
+              r_AnimationState_Draw(FramesID, p.TextureIDs[p.FCurTexture].AnTex, p.X + xx * w, p.Y + yy * h, p.Alpha, TMirrorType.None, p.Blending);
         end
       end
       else

@@ -346,8 +346,6 @@ begin
     if FTextureIDs[i].Anim then
     begin // Анимированная текстура
       FTextureIDs[i].AnTex := TAnimationState.Create(True, Textures[AddTextures[i].Texture].Speed, Textures[AddTextures[i].Texture].FramesCount);
-      FTextureIDs[i].AnTex.Blending := ByteBool(PanelRec.Flags and PANEL_FLAG_BLENDING);
-      FTextureIDs[i].AnTex.Alpha := PanelRec.Alpha;
     end
   end;
 
@@ -949,7 +947,7 @@ begin
   end;
   utils.writeBool(st, anim);
   // Если да - сохраняем анимацию
-  if anim then FTextureIDs[FCurTexture].AnTex.SaveState(st);
+  if anim then FTextureIDs[FCurTexture].AnTex.SaveState(st, FAlpha, FBlending);
 
   // moving platform state
   utils.writeInt(st, Integer(mMovingSpeed.X));
@@ -998,7 +996,7 @@ begin
            (FTextureIDs[FCurTexture].Anim) and
            (FTextureIDs[FCurTexture].AnTex <> nil),
            'TPanel.LoadState: No animation object');
-    FTextureIDs[FCurTexture].AnTex.LoadState(st);
+    FTextureIDs[FCurTexture].AnTex.LoadState(st, FAlpha, FBlending);
   end;
 
   // moving platform state
