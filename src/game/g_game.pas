@@ -18,8 +18,11 @@ unit g_game;
 interface
 
   uses
+    {$IFDEF ENABLE_MENU}
+      g_gui,
+    {$ENDIF}
     {$IFNDEF HEADLESS}
-      g_gui, g_touch,
+      g_touch,
     {$ENDIF}
     SysUtils, Classes, MAPDEF,
     g_base, g_basic, g_player, g_res_downloader,
@@ -113,9 +116,6 @@ function  g_Game_GetNextMap(): String;
 procedure g_Game_NextLevel();
 procedure g_Game_Pause(Enable: Boolean);
 procedure g_Game_HolmesPause(Enable: Boolean);
-{$IFNDEF HEADLESS}
-  procedure g_Game_InGameMenu(Show: Boolean);
-{$ENDIF}
 function  g_Game_IsWatchedPlayer(UID: Word): Boolean;
 function  g_Game_IsWatchedTeam(Team: Byte): Boolean;
 procedure g_Game_Message(Msg: String; Time: Word);
@@ -153,11 +153,14 @@ function IsActivePlayer(p: TPlayer): Boolean;
 function GetActivePlayerID_Next(Skip: Integer = -1): Integer;
 procedure SortGameStat(var stat: TPlayerStatArray);
 
-procedure KeyPress (K: Word);
 
+{$IFDEF ENABLE_MENU}
+  procedure g_Game_InGameMenu(Show: Boolean);
+{$ENDIF}
 {$IFNDEF HEADLESS}
   procedure CharPress (C: AnsiChar);
 {$ENDIF}
+  procedure KeyPress (K: Word);
 
 { procedure SetWinPause(Enable: Boolean); }
 
@@ -445,8 +448,11 @@ uses
   {$IFDEF ENABLE_HOLMES}
     g_holmes,
   {$ENDIF}
+  {$IFDEF ENABLE_MENU}
+    g_menu,
+  {$ENDIF}
   {$IFNDEF HEADLESS}
-    r_render, g_menu, g_system,
+    r_render, g_system,
   {$ENDIF}
   e_res, g_window,
   e_input, e_log, g_console, g_items, g_map, g_panel,
@@ -696,13 +702,10 @@ Cheated:
 end;
 
 
+{$IFDEF ENABLE_MENU}
 procedure KeyPress (K: Word);
-{$IFNDEF HEADLESS}
-var
-  Msg: g_gui.TMessage;
-{$ENDIF}
+  var Msg: g_gui.TMessage;
 begin
-{$IFNDEF HEADLESS}
   case K of
     VK_ESCAPE: // <Esc>:
       begin
@@ -775,32 +778,47 @@ begin
         end;
       end;
   end;
-{$ENDIF}
 end;
+{$ELSE}
+  procedure KeyPress (K: Word);
+  begin
+    gJustChatted := False;
+    if gConsoleShow or gChatShow then
+    begin
+      g_Console_Control(K);
+    end
+  end;
+{$ENDIF}
 
 {$IFNDEF HEADLESS}
-procedure CharPress (C: AnsiChar);
-var
-  Msg: g_gui.TMessage;
-  a: Integer;
-begin
-  if gConsoleShow or gChatShow then
+  procedure CharPress (C: AnsiChar);
+    {$IFDEF ENABLE_MENU}
+      var Msg: g_gui.TMessage;
+    {$ENDIF}
+    var a: Integer;
   begin
-    g_Console_Char(C)
-  end
-  else if (g_ActiveWindow <> nil) then
-  begin
-    Msg.Msg := WM_CHAR;
-    Msg.WParam := Ord(C);
-    g_ActiveWindow.OnMessage(Msg);
-  end
-  else
-  begin
-    for a := 0 to 14 do charbuff[a] := charbuff[a+1];
-    charbuff[15] := upcase1251(C);
-    Cheat();
+    if gConsoleShow or gChatShow then
+    begin
+      g_Console_Char(C);
+    end
+    {$IFDEF ENABLE_MENU}
+      else if g_ActiveWindow <> nil then
+      begin
+        Msg.Msg := WM_CHAR;
+        Msg.WParam := Ord(C);
+        g_ActiveWindow.OnMessage(Msg);
+      end
+    {$ENDIF}
+    else
+    begin
+      for a := 0 to 14 do
+      begin
+        charbuff[a] := charbuff[a + 1];
+      end;
+      charbuff[15] := upcase1251(C);
+      Cheat;
+    end;
   end;
-end;
 {$ENDIF}
 
 
@@ -1239,7 +1257,7 @@ begin
 
   EndingGameCounter := 0;
 
-{$IFNDEF HEADLESS}
+{$IFDEF ENABLE_MENU}
   g_ActiveWindow := nil;
 {$ENDIF}
 
@@ -1256,29 +1274,30 @@ begin
         end
         else
         begin // Выход в главное меню
-{$IFDEF HEADLESS}
-          gState := STATE_MENU; // ???
-{$ELSE}
-          gMusic.SetByName('MUSIC_MENU');
-          gMusic.Play();
-          if gState <> STATE_SLIST then
-          begin
-            g_GUI_ShowWindow('MainMenu');
-            gState := STATE_MENU;
-          end else
-          begin
-            // Обновляем список серверов
-            slReturnPressed := True;
-            if g_Net_Slist_Fetch(slCurrent) then
+          {$IFDEF DISABLE_MENU}
+            gState := STATE_MENU; // ???
+          {$ELSE}
+            gMusic.SetByName('MUSIC_MENU');
+            gMusic.Play();
+            if gState <> STATE_SLIST then
             begin
-              if slCurrent = nil then
-                slWaitStr := _lc[I_NET_SLIST_NOSERVERS];
+              g_GUI_ShowWindow('MainMenu');
+              gState := STATE_MENU;
             end
             else
-              slWaitStr := _lc[I_NET_SLIST_ERROR];
-            g_Serverlist_GenerateTable(slCurrent, slTable);
-          end;
-{$ENDIF}
+            begin
+              // Обновляем список серверов
+              slReturnPressed := True;
+              if g_Net_Slist_Fetch(slCurrent) then
+              begin
+                if slCurrent = nil then
+                  slWaitStr := _lc[I_NET_SLIST_NOSERVERS];
+              end
+              else
+                slWaitStr := _lc[I_NET_SLIST_ERROR];
+              g_Serverlist_GenerateTable(slCurrent, slTable);
+            end;
+          {$ENDIF}
           g_Game_ExecuteEvent('ongameend');
         end;
       end;
@@ -1650,7 +1669,7 @@ begin
     end
   end;
 
-{$IFNDEF HEADLESS}
+{$IFDEF ENABLE_MENU}
   // HACK: add dynlight here
   if gwin_k8_enable_light_experiments then
   begin
@@ -1689,7 +1708,7 @@ end;
 
 procedure g_Game_Update();
   var
-    {$IFNDEF HEADLESS}
+    {$IFDEF ENABLE_MENU}
       Msg: g_gui.TMessage;
       w: Word;
     {$ENDIF}
@@ -1782,7 +1801,7 @@ begin
               e_KeyPressed(JOY2_ATTACK) or e_KeyPressed(JOY3_ATTACK)
             )
             and (not gJustChatted) and (not gConsoleShow) and (not gChatShow)
-{$IFNDEF HEADLESS}
+{$IFDEF ENABLE_MENU}
             and (g_ActiveWindow = nil)
 {$ENDIF}
           )
@@ -1803,7 +1822,7 @@ begin
               begin
               // Выход в главное меню:
                 g_Game_Free;
-{$IFNDEF HEADLESS}
+{$IFDEF ENABLE_MENU}
                 g_GUI_ShowWindow('MainMenu');
                 gMusic.SetByName('MUSIC_MENU');
                 gMusic.Play();
@@ -1833,7 +1852,7 @@ begin
             e_KeyPressed(JOY2_ATTACK) or e_KeyPressed(JOY3_ATTACK)
           )
           and (not gJustChatted) and (not gConsoleShow) and (not gChatShow)
-{$IFNDEF HEADLESS}
+{$IFDEF ENABLE_MENU}
           and (g_ActiveWindow = nil)
 {$ENDIF}
         )
@@ -1970,7 +1989,7 @@ begin
     // Обрабатываем клавиши игроков:
       if gPlayer1 <> nil then gPlayer1.ReleaseKeys();
       if gPlayer2 <> nil then gPlayer2.ReleaseKeys();
-{$IFDEF HEADLESS}
+{$IFDEF DISABLE_MENU}
       if (not gConsoleShow) and (not gChatShow) then
 {$ELSE}
       if (not gConsoleShow) and (not gChatShow) and (g_ActiveWindow = nil) then
@@ -1989,7 +2008,7 @@ begin
   // Наблюдатель
     if (gPlayer1 = nil) and (gPlayer2 = nil)
       and (not gConsoleShow) and (not gChatShow)
-{$IFNDEF HEADLESS}
+{$IFDEF ENABLE_MENU}
       and (g_ActiveWindow = nil)
 {$ENDIF}
     then
@@ -2236,7 +2255,7 @@ begin
   end; // if gameOn ...
 
 // Активно окно интерфейса - передаем клавиши ему:
-{$IFNDEF HEADLESS}
+{$IFDEF ENABLE_MENU}
   if g_ActiveWindow <> nil then
   begin
     w := e_GetFirstKeyPressed();
@@ -2282,7 +2301,7 @@ begin
   begin
     KeyPress(IK_F10);
   end;
-{$ENDIF} // NOT HEADLESS
+{$ENDIF}
 
   Time := GetTickCount64() {div 1000};
 
@@ -3329,7 +3348,7 @@ begin
       g_Player_ResetAll(Force or gLastMap, gGameSettings.GameType = GT_SINGLE);
 
       gState := STATE_NONE;
-      {$IFNDEF HEADLESS}
+      {$IFDEF ENABLE_MENU}
         g_ActiveWindow := nil;
       {$ENDIF}
       gGameOn := True;
@@ -4562,7 +4581,7 @@ begin
   chstr := '';
   if cmd = 'pause' then
   begin
-    {$IFNDEF HEADLESS}
+    {$IFDEF ENABLE_MENU}
       if (g_ActiveWindow = nil) then
         g_Game_Pause(not gPauseMain);
     {$ELSE}
@@ -5809,7 +5828,7 @@ begin
 end;
 {$ENDIF}
 
-{$IFNDEF HEADLESS}
+{$IFDEF ENABLE_MENU}
 procedure g_Game_InGameMenu(Show: Boolean);
 begin
   if (g_ActiveWindow = nil) and Show then
@@ -6289,7 +6308,7 @@ begin
     PBarWasHere := false;
   end;
 
-  {$IFNDEF HEADLESS}
+  {$IFDEF ENABLE_MENU}
     g_ActiveWindow := nil;
   {$ENDIF}
 
