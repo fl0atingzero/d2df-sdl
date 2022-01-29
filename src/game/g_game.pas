@@ -127,7 +127,7 @@ procedure g_Game_Announce_KillCombo(Param: Integer);
 procedure g_Game_Announce_BodyKill(SpawnerUID: Word);
 procedure g_Game_StartVote(Command, Initiator: string);
 procedure g_Game_CheckVote;
-{$IFNDEF HEADLESS}
+{$IFDEF ENABLE_RENDER}
   procedure g_TakeScreenShot(Filename: string = '');
 {$ENDIF}
 procedure g_FatalError(Text: String);
@@ -460,8 +460,11 @@ uses
   {$IFDEF ENABLE_CORPSES}
     g_corpses,
   {$ENDIF}
+  {$IFDEF ENABLE_RENDER}
+    r_render,
+  {$ENDIF}
   {$IFNDEF HEADLESS}
-    r_render, g_system,
+    g_system,
   {$ENDIF}
   e_res, g_window,
   e_input, e_log, g_console, g_items, g_map, g_panel,
@@ -3376,7 +3379,7 @@ begin
   begin
     //result := g_Map_Load(gGameSettings.WAD + ':\' + ResName);
     result := g_Map_Load(NewWAD+':\'+ResName);
-    {$IFNDEF HEADLESS}
+    {$IFDEF ENABLE_RENDER}
       r_Render_LoadTextures;
     {$ENDIF}
   end;
@@ -5587,8 +5590,8 @@ begin
   end
   else if cmd = 'screenshot' then
   begin
-    {$IFNDEF HEADLESS}
-      g_TakeScreenShot()
+    {$IFDEF ENABLE_RENDER}
+      g_TakeScreenShot;
     {$ENDIF}
   end
   else if cmd = 'weapon' then
@@ -5826,7 +5829,7 @@ begin
         g_Game_Free();
         g_Game_Quit();
       end;
-{$IFNDEF HEADLESS}
+{$IFDEF ENABLE_RENDER}
     'r_reset':
          r_Render_Apply;
 {$ENDIF}
@@ -5875,7 +5878,7 @@ begin
   end;
 end;
 
-{$IFNDEF HEADLESS}
+{$IFDEF ENABLE_RENDER}
 procedure g_TakeScreenShot(Filename: string = '');
   var t: TDateTime; dir, date, name: String;
 begin
