@@ -451,6 +451,9 @@ uses
   {$IFDEF ENABLE_GFX}
     g_gfx,
   {$ENDIF}
+  {$IFDEF ENABLE_GIBS}
+    g_gibs,
+  {$ENDIF}
   {$IFNDEF HEADLESS}
     r_render, g_system,
   {$ENDIF}
@@ -2178,6 +2181,9 @@ begin
       g_GFX_Update;
     {$ENDIF}
     g_Player_UpdateAll();
+    {$IFDEF ENABLE_GIBS}
+      g_Gibs_Update;
+    {$ENDIF}
     g_Player_UpdatePhysicalObjects();
 
     // server: send newly spawned monsters unconditionally
@@ -3986,12 +3992,18 @@ begin
   begin
     if Length(p) = 2 then
     begin
-      a := Max(0, StrToInt(p[1]));
-      g_Gibs_SetMax(a)
+      {$IFDEF ENABLE_GIBS}
+        a := Max(0, StrToInt(p[1]));
+        g_Gibs_SetMax(a)
+      {$ENDIF}
     end
     else if Length(p) = 1 then
     begin
-      e_LogWritefln('%s', [g_Gibs_GetMax()])
+      {$IFDEF ENABLE_GIBS}
+        e_LogWritefln('%s', [g_Gibs_GetMax()])
+      {$ELSE}
+        e_LogWritefln('%s', [0])
+      {$ENDIF}
     end
     else
     begin
