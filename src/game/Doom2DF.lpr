@@ -387,7 +387,6 @@ begin
       begin
         itmp := 0;
         val(ParamStr(idx), itmp, valres);
-        {$IFNDEF HEADLESS}
         if (valres = 0) and (not g_holmes_imfunctional) then
         begin
           case itmp of
@@ -396,11 +395,6 @@ begin
             16: uiContext.font := 'win16';
           end;
         end;
-        {$ELSE}
-        // fuck off, fpc!
-        itmp := itmp;
-        valres := valres;
-        {$ENDIF}
         Inc(idx);
       end;
     end;
