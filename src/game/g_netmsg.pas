@@ -181,7 +181,7 @@ procedure MH_SEND_ItemSpawn(Quiet: Boolean; IID: Word; ID: Integer = NET_EVERYON
 procedure MH_SEND_ItemDestroy(Quiet: Boolean; IID: Word; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_ItemPos(IID: Word; ID: Integer = NET_EVERYONE);
 // PANEL
-procedure MH_SEND_PanelTexture(PGUID: Integer; AnimLoop: Byte; ID: Integer = NET_EVERYONE);
+procedure MH_SEND_PanelTexture(PGUID: Integer; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_PanelState(PGUID: Integer; ID: Integer = NET_EVERYONE);
 // MONSTER
 procedure MH_SEND_MonsterSpawn(UID: Word; ID: Integer = NET_EVERYONE);
@@ -904,7 +904,7 @@ procedure MH_SEND_Everything(CreatePlayers: Boolean {= False}; ID: Integer {= NE
   begin
     result := false; // don't stop
     MH_SEND_PanelState(pan.guid, ID); // anyway, to sync mplats
-    if (pan.CanChangeTexture) then MH_SEND_PanelTexture(pan.guid, pan.LastAnimLoop, ID);
+    if (pan.CanChangeTexture) then MH_SEND_PanelTexture(pan.guid, ID);
   end;
 
 var
@@ -1470,22 +1470,18 @@ end;
 
 // PANEL
 
-procedure MH_SEND_PanelTexture(PGUID: Integer; AnimLoop: Byte; ID: Integer = NET_EVERYONE);
+procedure MH_SEND_PanelTexture(PGUID: Integer; ID: Integer = NET_EVERYONE);
 var
   TP: TPanel;
 begin
   TP := g_Map_PanelByGUID(PGUID);
   if (TP = nil) then exit;
 
-  with TP do
-  begin
-    NetOut.Write(Byte(NET_MSG_PTEX));
-    NetOut.Write(LongWord(PGUID));
-    NetOut.Write(FCurTexture);
-    NetOut.Write(FCurFrame);
-    NetOut.Write(FCurFrameCount);
-    NetOut.Write(AnimLoop);
-  end;
+  NetOut.Write(Byte(NET_MSG_PTEX));
+  NetOut.Write(LongWord(PGUID));
+  NetOut.Write(TP.FCurTexture);
+  NetOut.Write(TP.AnimTime);
+  NetOut.Write(TP.LastAnimLoop);
 
   g_Net_Host_Send(ID, True, NET_CHAN_LARGEDATA);
 end;
@@ -2803,18 +2799,13 @@ end;
 // PANEL
 
 procedure MC_RECV_PanelTexture(var M: TMsg);
-var
-  TP: TPanel;
-  PGUID: Integer;
-  Tex, Fr: Integer;
-  Loop, Cnt: Byte;
+  var TP: TPanel; PGUID, Tex: Integer; AnimTime: LongWord; Loop: Byte;
 begin
   if not gGameOn then Exit;
 
   PGUID := Integer(M.ReadLongWord());
   Tex := M.ReadLongInt();
-  Fr := M.ReadLongInt();
-  Cnt := M.ReadByte();
+  AnimTime := M.ReadLongWord();
   Loop := M.ReadByte();
 
   TP := g_Map_PanelByGUID(PGUID);
@@ -2822,7 +2813,7 @@ begin
   begin
     // switch texture
     TP.SetTexture(Tex, Loop);
-    TP.SetFrame(Fr, Cnt);
+    TP.SetFrame(AnimTime);
   end;
 end;
 
