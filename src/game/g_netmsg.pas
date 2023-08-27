@@ -1332,6 +1332,7 @@ begin
     NetOut.Write(Byte(R_BERSERK in FRulez));
 
     NetOut.Write(Frags);
+    NetOut.Write(Assists);
     NetOut.Write(Death);
 
     NetOut.Write(CurrWeap);
@@ -2542,6 +2543,7 @@ begin
       FRulez := FRulez + [R_BERSERK];
 
     Frags := M.ReadLongInt();
+    Assists := M.ReadLongInt();
     Death := M.ReadLongInt();
 
     SetWeapon(M.ReadByte());

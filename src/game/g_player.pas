@@ -112,6 +112,7 @@ type
     Name: String;
     Team: Byte;
     Frags: SmallInt;
+    Assists: SmallInt;
     Deaths: SmallInt;
     Lives: Byte;
     Kills: Word;
@@ -160,6 +161,7 @@ type
     FKills:     Integer;
     FMonsterKills: Integer;
     FFrags:     Integer;
+    FAssists:     Integer;
     FFragCombo: Byte;
     FLastFrag:  LongWord;
     FComboEvnt: Integer;
@@ -383,6 +385,7 @@ type
     property    Air:   Integer read FAir write FAir;
     property    JetFuel: Integer read FJetFuel write FJetFuel;
     property    Frags: Integer read FFrags write FFrags;
+    property    Assists: Integer read FAssists write FAssists;
     property    Death: Integer read FDeath write FDeath;
     property    Kills: Integer read FKills write FKills;
     property    CurrWeap: Byte read FCurrWeap write FCurrWeap;
@@ -419,6 +422,7 @@ type
     property eAir:   Integer read FAir write FAir;
     property eJetFuel: Integer read FJetFuel write FJetFuel;
     property eFrags: Integer read FFrags write FFrags;
+    property eAssists: Integer read FAssists write FAssists;
     property eDeath: Integer read FDeath write FDeath;
     property eKills: Integer read FKills write FKills;
     property eCurrWeap: Byte read FCurrWeap write FCurrWeap;
@@ -1497,6 +1501,7 @@ begin
         Name := gPlayers[a].FName;
         Team := gPlayers[a].FTeam;
         Frags := gPlayers[a].FFrags;
+        Assists := gPlayers[a].FAssists;
         Deaths := gPlayers[a].FDeath;
         Kills := gPlayers[a].FKills;
         Color := gPlayers[a].FModel.Color;
@@ -2779,7 +2784,7 @@ var
   X, Y, SY, a, p, m: Integer;
   tw, th: Word;
   cw, ch: Byte;
-  s: string;
+  s, t: string;
   stat: TPlayerStatArray;
 begin
   X := gPlayerScreenSize.X;
@@ -2835,10 +2840,12 @@ begin
     if gShowStat then
     begin
       s := IntToStr(Frags);
+      t := IntToStr(Assists);
       e_CharFont_GetSize(gMenuFont, s, tw, th);
       e_CharFont_PrintEx(gMenuFont, X-16-tw, Y, s, _RGB(255, 0, 0));
 
       s := '';
+      t := '';
       p := 1;
       m := 0;
       stat := g_Player_GetStats();
@@ -2857,6 +2864,10 @@ begin
       s := IntToStr(p)+' / '+IntToStr(Length(stat))+' ';
       if Frags >= m then s := s+'+' else s := s+'-';
       s := s+IntToStr(Abs(Frags-m));
+
+      t := IntToStr(p)+' / '+IntToStr(Length(stat))+' ';
+      if Assists >= m then t := t+'+' else t := t+'-';
+      t := t+IntToStr(Abs(Assists-m));
 
       e_CharFont_GetSize(gMenuSmallFont, s, tw, th);
       e_CharFont_PrintEx(gMenuSmallFont, X-16-tw, Y+32, s, _RGB(255, 0, 0));
@@ -3428,6 +3439,7 @@ var
   plr: TPlayer;
   srv, netsrv: Boolean;
   DoFrags: Boolean;
+  DoAssists: Boolean;
   OldLR: Byte;
   KP: TPlayer;
   it: PItem;
@@ -3465,6 +3477,7 @@ var
 
 begin
   DoFrags := (gGameSettings.MaxLives = 0) or (gGameSettings.GameMode = GM_COOP);
+  DoAssists := (gGameSettings.GameMode = GM_TDM) or (gGameSettings.GameMode = GM_CTF);
   Srv := g_Game_IsServer;
   Netsrv := g_Game_IsServer and g_Game_IsNet;
   if Srv then FDeath := FDeath + 1;
@@ -3551,6 +3564,15 @@ begin
             begin
               Inc(KP.FFrags);
               KP.FragCombo();
+            end;
+
+          // Assists block
+          if (DoAssists or (gGameSettings.GameMode = GM_TDM)) then
+            begin
+              if a = 4 then
+              begin
+                Inc(KP.FAssists);
+              end;
             end;
 
           if (gGameSettings.GameMode = GM_TDM) and DoFrags then
@@ -4515,6 +4537,7 @@ begin
   FNoTarget := False;
   FNoReload := False;
   FFrags := 0;
+  FAssists := 0;
   FLastFrag := 0;
   FComboEvnt := -1;
   FKills := 0;
@@ -6155,6 +6178,8 @@ begin
   utils.writeInt(st, LongInt(FMonsterKills));
   // Фрагов
   utils.writeInt(st, LongInt(FFrags));
+  // Ассистов
+  utils.writeInt(st, LongInt(FAssists));
   // Фрагов подряд
   utils.writeInt(st, Byte(FFragCombo));
   // Время последнего фрага
@@ -6259,6 +6284,8 @@ begin
   FMonsterKills := utils.readLongInt(st);
   // Фрагов
   FFrags := utils.readLongInt(st);
+  // Ассистов
+  FAssists := utils.readLongInt(st);
   // Фрагов подряд
   FFragCombo := utils.readByte(st);
   // Время последнего фрага

@@ -641,12 +641,14 @@ function Compare(a, b: TPlayerStat): Integer;
 begin
   if a.Spectator then Result := 1
     else if b.Spectator then Result := -1
-      else if a.Frags < b.Frags then Result := 1
-        else if a.Frags > b.Frags then Result := -1
-          else if a.Deaths < b.Deaths then Result := -1
-            else if a.Deaths > b.Deaths then Result := 1
-              else if a.Kills < b.Kills then Result := -1
-                else Result := 1;
+      else if a.Assists < b.Assists then Result := 1
+        else if a.Assists > b.Assists then Result := -1
+           else if a.Frags < b.Frags then Result := 1
+             else if a.Frags > b.Frags then Result := -1
+               else if a.Deaths < b.Deaths then Result := -1
+                 else if a.Deaths > b.Deaths then Result := 1
+                   else if a.Kills < b.Kills then Result := -1
+                     else Result := 1;
 end;
 
 procedure SortGameStat(var stat: TPlayerStatArray);
@@ -716,10 +718,10 @@ begin
         WriteLn(s,
           Format('mon_killed,mon_total,secrets_found,secrets_total' + LineEnding + '%d,%d,%d,%d',[gCoopMonstersKilled, gTotalMonsters, gCoopSecretsFound, gSecretsCount]));
       // lines 3-...: team, player name, frags, deaths
-      WriteLn(s, 'team,name,frags,deaths');
+      WriteLn(s, 'team,name,frags,assists,deaths');
       for I := Low(Stat.PlayerStat) to High(Stat.PlayerStat) do
         with Stat.PlayerStat[I] do
-          WriteLn(s, Format('%d,%s,%d,%d', [Team, dquoteStr(Name), Frags, Deaths]));
+          WriteLn(s, Format('%d,%s,%d,%d', [Team, dquoteStr(Name), Frags, Assists, Deaths]));
     except
       g_Console_Add(Format(_lc[I_CONSOLE_ERROR_WRITE], [fname]));
     end;
@@ -1086,6 +1088,7 @@ begin
                 Num := a;
                 Name := gPlayers[a].Name;
                 Frags := gPlayers[a].Frags;
+                Assists := gPlayers[a].Assists;
                 Deaths := gPlayers[a].Death;
                 Kills := gPlayers[a].Kills;
                 Team := gPlayers[a].Team;
@@ -1340,6 +1343,8 @@ begin
             e_TextureFontPrintEx(x+w1+16, _y, Format(_lc[I_GAME_PING_MS], [Ping, Loss]), gStdFont, rr, gg, bb, 1);
             // Фраги
             e_TextureFontPrintEx(x+w1+w2+16, _y, IntToStr(Frags), gStdFont, rr, gg, bb, 1);
+            // Ассисты
+            e_TextureFontPrintEx(x+w1+w2+48, _y, IntToStr(Assists), gStdFont, rr, gg, bb, 1);
             // Смерти
             e_TextureFontPrintEx(x+w1+w2+w3+16, _y, IntToStr(Deaths), gStdFont, rr, gg, bb, 1);
             _y := _y+ch;
@@ -2914,7 +2919,8 @@ begin
             else
               e_TextureFontPrintEx(x+16, _y, Name, gStdFont, rr, gg, bb, 1);
             e_TextureFontPrintEx(x+w1+16, _y, IntToStr(Frags), gStdFont, rr, gg, bb, 1);
-            e_TextureFontPrintEx(x+w1+w2+16, _y, IntToStr(Deaths), gStdFont, rr, gg, bb, 1);
+            e_TextureFontPrintEx(x+w1+w2+16, _y, IntToStr(Assists), gStdFont, rr, gg, bb, 1);
+            e_TextureFontPrintEx(x+w1+w2+w3+16, _y, IntToStr(Deaths), gStdFont, rr, gg, bb, 1);
             _y := _y+24;
           end;
 
@@ -5382,6 +5388,7 @@ begin
     if gGameSettings.GameMode = GM_COOP then
     begin
       gPlayers[i].Frags := 0;
+      gPlayers[i].Assists := 0;
       gPlayers[i].RecallState;
     end;
     if (gPlayer1 = nil) and (gSpectLatchPID1 > 0) then
