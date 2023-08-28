@@ -3439,7 +3439,6 @@ var
   plr: TPlayer;
   srv, netsrv: Boolean;
   DoFrags: Boolean;
-  DoAssists: Boolean;
   OldLR: Byte;
   KP: TPlayer;
   it: PItem;
@@ -3477,7 +3476,6 @@ var
 
 begin
   DoFrags := (gGameSettings.MaxLives = 0) or (gGameSettings.GameMode = GM_COOP);
-  DoAssists := (gGameSettings.GameMode = GM_TDM) or (gGameSettings.GameMode = GM_CTF);
   Srv := g_Game_IsServer;
   Netsrv := g_Game_IsServer and g_Game_IsNet;
   if Srv then FDeath := FDeath + 1;
@@ -3564,15 +3562,6 @@ begin
             begin
               Inc(KP.FFrags);
               KP.FragCombo();
-            end;
-
-          // Assists block
-          if (DoAssists or (gGameSettings.GameMode = GM_TDM)) then
-            begin
-              if a = 4 then
-              begin
-                Inc(KP.FAssists);
-              end;
             end;
 
           if (gGameSettings.GameMode = GM_TDM) and DoFrags then
@@ -3860,6 +3849,23 @@ begin
   FNextWeap := 0;
   FNextWeapDelay := 0;
 end;
+
+// Assists block
+procedure TPlayer.Assist();
+var
+  DoAssists: Boolean;
+begin
+  DoAssists := (gGameSettings.GameMode = GM_TDM) or (gGameSettings.GameMode = GM_CTF);
+
+  if (DoAssists or (gGameSettings.GameMode = GM_TDM)) then
+  begin
+    if a = 4 then
+    begin
+      Inc(KP.FAssists);
+    end;
+  end;
+end;
+
 
 function TPlayer.hasAmmoForWeapon (weapon: Byte): Boolean;
 begin

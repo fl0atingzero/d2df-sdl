@@ -1312,6 +1312,10 @@ begin
       e_TextureFontPrintEx(x+16, _y, s1, gStdFont, r, g, b, 1);
       e_TextureFontPrintEx(x+w1+16, _y, IntToStr(gTeamStat[a].Score),
                            gStdFont, r, g, b, 1);
+      e_TextureFontPrintEx(x+w1+w2+16, _y, _lc[I_GAME_FRAGS],
+                           gStdFont, r, g, b, 1);
+      e_TextureFontPrintEx(x+w1+w2+72, _y, _lc[I_GAME_ASSISTS],
+                           gStdFont, r, g, b, 1);
 
       _y := _y+ch+(ch div 4);
       e_DrawLine(1, x+16, _y, x+w-16, _y, r, g, b);
@@ -1344,7 +1348,7 @@ begin
             // Фраги
             e_TextureFontPrintEx(x+w1+w2+16, _y, IntToStr(Frags), gStdFont, rr, gg, bb, 1);
             // Ассисты
-            e_TextureFontPrintEx(x+w1+w2+48, _y, IntToStr(Assists), gStdFont, rr, gg, bb, 1);
+            e_TextureFontPrintEx(x+w1+w2+72, _y, IntToStr(Assists), gStdFont, rr, gg, bb, 1);
             // Смерти
             e_TextureFontPrintEx(x+w1+w2+w3+16, _y, IntToStr(Deaths), gStdFont, rr, gg, bb, 1);
             _y := _y+ch;
