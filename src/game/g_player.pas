@@ -161,7 +161,7 @@ type
     FKills:     Integer;
     FMonsterKills: Integer;
     FFrags:     Integer;
-    FAssists:     Integer;
+    FAssists:   Integer;
     FFragCombo: Byte;
     FLastFrag:  LongWord;
     FComboEvnt: Integer;
@@ -2861,10 +2861,12 @@ begin
           end;
       end;
 
+        // FRAGS
       s := IntToStr(p)+' / '+IntToStr(Length(stat))+' ';
       if Frags >= m then s := s+'+' else s := s+'-';
       s := s+IntToStr(Abs(Frags-m));
 
+        // ASSISTS
       t := IntToStr(p)+' / '+IntToStr(Length(stat))+' ';
       if Assists >= m then t := t+'+' else t := t+'-';
       t := t+IntToStr(Abs(Assists-m));
@@ -3850,21 +3852,29 @@ begin
   FNextWeapDelay := 0;
 end;
 
+
 // Assists block
-procedure TPlayer.Assist();
+{procedure TPlayer.Assist(KillType: Byte; SpawnerUID: Word);
 var
   DoAssists: Boolean;
+  AP: TPlayer;
+
+  procedure Accumulate(FDamage: Byte;);
+  begin
+
+  end;
+
+
 begin
   DoAssists := (gGameSettings.GameMode = GM_TDM) or (gGameSettings.GameMode = GM_CTF);
-
-  if (DoAssists or (gGameSettings.GameMode = GM_TDM)) then
+  if DoAssists then
   begin
-    if a = 4 then
+    if (FAccumulatedDamage >= 65) then
     begin
-      Inc(KP.FAssists);
+      Inc(AP.FAssists);
     end;
   end;
-end;
+end;}
 
 
 function TPlayer.hasAmmoForWeapon (weapon: Byte): Boolean;

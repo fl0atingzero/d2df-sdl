@@ -1312,7 +1312,7 @@ begin
       e_TextureFontPrintEx(x+16, _y, s1, gStdFont, r, g, b, 1);
       e_TextureFontPrintEx(x+w1+16, _y, IntToStr(gTeamStat[a].Score),
                            gStdFont, r, g, b, 1);
-      e_TextureFontPrintEx(x+w1+w2+16, _y, _lc[I_GAME_FRAGS],
+      e_TextureFontPrintEx(x+w1+w2, _y, _lc[I_GAME_FRAGS],
                            gStdFont, r, g, b, 1);
       e_TextureFontPrintEx(x+w1+w2+72, _y, _lc[I_GAME_ASSISTS],
                            gStdFont, r, g, b, 1);
@@ -2923,8 +2923,8 @@ begin
             else
               e_TextureFontPrintEx(x+16, _y, Name, gStdFont, rr, gg, bb, 1);
             e_TextureFontPrintEx(x+w1+16, _y, IntToStr(Frags), gStdFont, rr, gg, bb, 1);
-            e_TextureFontPrintEx(x+w1+w2+16, _y, IntToStr(Assists), gStdFont, rr, gg, bb, 1);
-            e_TextureFontPrintEx(x+w1+w2+w3+16, _y, IntToStr(Deaths), gStdFont, rr, gg, bb, 1);
+            e_TextureFontPrintEx(x+w1+72, _y, IntToStr(Assists), gStdFont, rr, gg, bb, 1);
+            e_TextureFontPrintEx(x+w1+w2+16, _y, IntToStr(Deaths), gStdFont, rr, gg, bb, 1);
             _y := _y+24;
           end;
 
