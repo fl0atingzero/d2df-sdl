@@ -2324,7 +2324,7 @@ begin
     Exit;
 
 // Если есть урон своим, или ранил сам себя, или тебя ранил противник:
-  if (TGameOption.TEAM_DAMAGE in gGameSettings.Options) or
+  if (TGameOption.FRIENDLY_FIRE in gGameSettings.Options) or
      (SpawnerUID = FUID) or
      (not SameTeam(FUID, SpawnerUID)) then
   begin

@@ -776,57 +776,55 @@ begin
 end;
 
 function g_Weapon_Hit(obj: PObj; d: Integer; SpawnerUID: Word; t: Byte; HitCorpses: Boolean = True): Byte;
-var
-  i, h: Integer;
 
   function PlayerHit(Team: Byte = 0): Boolean;
   var
-    i: Integer;
+    i: SizeInt;
     ChkTeam: Boolean;
     p: TPlayer;
   begin
     Result := False;
-    h := High(gPlayers);
+    for i := 0 to High(gPlayers) do
+    begin
+      if (gPlayers[i] <> nil) and gPlayers[i].alive and g_Obj_Collide(obj, @gPlayers[i].Obj) then
+      begin
+        ChkTeam := True;
 
-    if h <> -1 then
-      for i := 0 to h do
-        if (gPlayers[i] <> nil) and gPlayers[i].alive and g_Obj_Collide(obj, @gPlayers[i].Obj) then
+        if (Team > 0) and (g_GetUIDType(SpawnerUID) = UID_PLAYER) then
         begin
-          ChkTeam := True;
-          if (Team > 0) and (g_GetUIDType(SpawnerUID) = UID_PLAYER) then
-          begin
-            p := g_Player_Get(SpawnerUID);
-            if p <> nil then
-              ChkTeam := (p.Team = gPlayers[i].Team) xor (Team = 2);
-          end;
-          if ChkTeam then
-            if HitPlayer(gPlayers[i], d, obj^.Vel.X, obj^.Vel.Y, SpawnerUID, t) then
-            begin
-              if t <> HIT_FLAME then
-                gPlayers[i].Push((obj^.Vel.X+obj^.Accel.X)*IfThen(t = HIT_BFG, 8, 1) div 4,
-                                 (obj^.Vel.Y+obj^.Accel.Y)*IfThen(t = HIT_BFG, 8, 1) div 4);
-              if t = HIT_BFG then
-                g_Game_DelayEvent(DE_BFGHIT, 1000, SpawnerUID);
-              Result := True;
-              break;
-            end;
+          p := g_Player_Get(SpawnerUID);
+          if p <> nil then
+            ChkTeam := (p.Team = gPlayers[i].Team) xor (Team = 2);
         end;
+
+        if ChkTeam and HitPlayer(gPlayers[i], d, obj^.Vel.X, obj^.Vel.Y, SpawnerUID, t) then
+        begin
+          if t <> HIT_FLAME then
+            gPlayers[i].Push((obj^.Vel.X+obj^.Accel.X)*IfThen(t = HIT_BFG, 8, 1) div 4,
+                             (obj^.Vel.Y+obj^.Accel.Y)*IfThen(t = HIT_BFG, 8, 1) div 4);
+          if t = HIT_BFG then
+            g_Game_DelayEvent(DE_BFGHIT, 1000, SpawnerUID);
+          Result := True;
+          break;
+        end;
+      end;
+    end;
   end;
 
   {
   function monsCheckHit (monidx: Integer; mon: TMonster): Boolean;
   begin
-    result := false; // don't stop
+    Result := False;  // don't stop
     if mon.alive and g_Obj_Collide(obj, @mon.Obj) then
     begin
       if HitMonster(mon, d, obj^.Vel.X, obj^.Vel.Y, SpawnerUID, t) then
       begin
-        if (t <> HIT_FLAME) then
+        if t <> HIT_FLAME then
         begin
           mon.Push((obj^.Vel.X+obj^.Accel.X)*IfThen(t = HIT_BFG, 8, 1) div 4,
-                              (obj^.Vel.Y+obj^.Accel.Y)*IfThen(t = HIT_BFG, 8, 1) div 4);
+                   (obj^.Vel.Y+obj^.Accel.Y)*IfThen(t = HIT_BFG, 8, 1) div 4);
         end;
-        result := True;
+        Result := True;
       end;
     end;
   end;
@@ -834,111 +832,74 @@ var
 
   function monsCheckHit (mon: TMonster): Boolean;
   begin
-    result := false; // don't stop
+    Result := False;  // don't stop
     if HitMonster(mon, d, obj.Vel.X, obj.Vel.Y, SpawnerUID, t) then
     begin
-      if (t <> HIT_FLAME) then
+      if t <> HIT_FLAME then
       begin
         mon.Push((obj.Vel.X+obj.Accel.X)*IfThen(t = HIT_BFG, 8, 1) div 4,
                  (obj.Vel.Y+obj.Accel.Y)*IfThen(t = HIT_BFG, 8, 1) div 4);
       end;
-      result := true;
+      Result := True;
     end;
   end;
 
   function MonsterHit(): Boolean;
   begin
-    //result := g_Mons_ForEach(monsCheckHit);
+    //Result := g_Mons_ForEach(monsCheckHit);
     //FIXME: accelerate this!
-    result := g_Mons_ForEachAliveAt(obj.X+obj.Rect.X, obj.Y+obj.Rect.Y, obj.Rect.Width, obj.Rect.Height, monsCheckHit);
+    Result := g_Mons_ForEachAliveAt(obj.X+obj.Rect.X, obj.Y+obj.Rect.Y, obj.Rect.Width, obj.Rect.Height, monsCheckHit);
   end;
 
+var
+  k: SizeInt;
 begin
   Result := 0;
 
-  if HitCorpses then
+  if HitCorpses and gAdvCorpses then
   begin
-    h := High(gCorpses);
-
-    if gAdvCorpses and (h <> -1) then
-      for i := 0 to h do
-        if (gCorpses[i] <> nil) and (gCorpses[i].State <> CORPSE_STATE_REMOVEME) and
-           g_Obj_Collide(obj, @gCorpses[i].Obj) then
-        begin
-          // Распиливаем труп:
-          gCorpses[i].Damage(d, SpawnerUID, (obj^.Vel.X+obj^.Accel.X) div 4,
-                                            (obj^.Vel.Y+obj^.Accel.Y) div 4);
-          Result := 1;
-        end;
+    for k := 0 to High(gCorpses) do
+      if (gCorpses[k] <> nil) and (gCorpses[k].State <> CORPSE_STATE_REMOVEME) and
+        g_Obj_Collide(obj, @gCorpses[k].Obj) then
+      begin
+        // Распиливаем труп:
+        gCorpses[k].Damage(d, SpawnerUID, (obj^.Vel.X+obj^.Accel.X) div 4,
+                                          (obj^.Vel.Y+obj^.Accel.Y) div 4);
+        Result := 1;
+      end;
   end;
 
   case gGameSettings.GameMode of
     // Кампания:
-    GM_COOP, GM_SINGLE:
-    begin
-      // Сначала бьём монстров, если есть, потом пытаемся бить игроков
-      if MonsterHit() then
-      begin
-        Result := 2;
-        Exit;
-      end;
+    GM_COOP, GM_SINGLE: begin
+      // Сначала бьём монстров, если есть
+      if MonsterHit() then Exit(2);
 
-      // И в конце игроков, но только если положено
-      // (или снаряд от монстра, или friendlyfire, или friendly_hit_projectile)
-      if (g_GetUIDType(SpawnerUID) <> UID_PLAYER) or
-         ([TGameOption.TEAM_DAMAGE, TGameOption.TEAM_HIT_PROJECTILE] <= gGameSettings.Options) then
+      // И в конце игроков, но только если положено или снаряд от монстра
+      if (g_GetUIDType(SpawnerUID) <> UID_PLAYER) or (gGameSettings.Options *
+        [TGameOption.FRIENDLY_FIRE, TGameOption.TEAM_HIT_PROJECTILE] <> []) then
       begin
-        if PlayerHit() then
-        begin
-          Result := 1;
-          Exit;
-        end;
+        if PlayerHit() then Exit(1);
       end;
     end;
 
     // Дезматч:
-    GM_DM:
-    begin
-      // Сначала бьём игроков, если есть, потом пытаемся бить монстров
-      if PlayerHit() then
-      begin
-        Result := 1;
-        Exit;
-      end;
-
-      if MonsterHit() then
-      begin
-        Result := 2;
-        Exit;
-      end;
+    GM_DM: begin
+      if PlayerHit() then Exit(1);  // Сначала бьём игроков, если есть
+      if MonsterHit() then Exit(2);  // потом пытаемся бить монстров
     end;
 
     // Командные:
-    GM_TDM, GM_CTF:
-    begin
-      // Сначала бьём игроков команды соперника
-      if PlayerHit(2) then
-      begin
-        Result := 1;
-        Exit;
-      end;
-
-      // Потом монстров
-      if MonsterHit() then
-      begin
-        Result := 2;
-        Exit;
-      end;
+    GM_TDM, GM_CTF: begin
+      if PlayerHit(2) then Exit(1);  // Сначала бьём игроков команды соперника
+      if MonsterHit() then Exit(2);  // Потом монстров
 
       // И в конце своих игроков, но только если положено
       // (или friendlyfire, или friendly_hit_projectile)
-      if [TGameOption.TEAM_DAMAGE, TGameOption.TEAM_HIT_PROJECTILE] <= gGameSettings.Options then
+      if gGameSettings.Options * [TGameOption.FRIENDLY_FIRE, TGameOption.TEAM_HIT_PROJECTILE] <>
+        [] then
       begin
-        if PlayerHit(1) then
-        begin
-          Result := 1;
-          Exit;
-        end;
+        if PlayerHit(1) then Exit(1);
       end;
     end;
 
@@ -1406,10 +1367,10 @@ var
     if (gPlayers[idx] = nil) or not gPlayers[idx].alive then exit;
     if (spawnerPlr <> nil) then
     begin
-      if (not ([TGameOption.TEAM_HIT_TRACE, TGameOption.TEAM_DAMAGE] <= gGameSettings.Options)) and
+      if (not ([TGameOption.TEAM_HIT_TRACE, TGameOption.FRIENDLY_FIRE] <= gGameSettings.Options)) and
          (spawnerPlr.Team <> TEAM_NONE) and (spawnerPlr.Team = gPlayers[idx].Team) then
       begin
-        if (spawnerPlr <> gPlayers[idx]) and not (TGameOption.TEAM_ABSORB_DAMAGE in gGameSettings.Options) then
+        if (spawnerPlr <> gPlayers[idx]) and not (TGameOption.TEAM_ABSORB_ATTACKS in gGameSettings.Options) then
           dmg := Max(1, dmg div 2);
         exit;
       end;
@@ -2672,7 +2633,8 @@ end;
 
 procedure g_Weapon_SaveState (st: TStream);
 var
-  count, i, j: Integer;
+  count: SizeUInt;
+  i, j: SizeInt;
 begin
   // Считаем количество существующих снарядов
   count := 0;
@@ -2697,9 +2659,8 @@ begin
       st.WriteDWordLE(Length(Projectiles[i].Triggers));  // Размер поля Triggers
 
       // Триггеры, активированные выстрелом
-      if Projectiles[i].Triggers <> nil then
-        for j := 0 to High(Projectiles[i].Triggers) do
-          st.WriteDWordLE(Projectiles[i].Triggers[j]);
+      for j := 0 to High(Projectiles[i].Triggers) do
+        st.WriteDWordLE(Projectiles[i].Triggers[j]);
 
       Obj_SaveState(st, @Projectiles[i].Obj);  // Объект снаряда
       st.WriteByte(Projectiles[i].Stopped);  // Костылина
@@ -2709,7 +2670,8 @@ end;
 
 procedure g_Weapon_LoadState (st: TStream);
 var
-  count, tc, i, j: SizeUInt;
+  count, tc, i: SizeUInt;
+  j: SizeInt;
   dw: LongWord;
 begin
   if st = nil then Exit;
@@ -2741,9 +2703,8 @@ begin
     SetLength(Projectiles[i].Triggers, tc);
 
     // Триггеры, активированные выстрелом
-    if tc > 0 then
-      for j := 0 to tc - 1 do
-        Projectiles[i].Triggers[j] := st.ReadDWordLE();
+    for j := 0 to tc - 1 do
+      Projectiles[i].Triggers[j] := st.ReadDWordLE();
 
     Obj_LoadState(@Projectiles[i].Obj, st);  // Объект предмета
     Projectiles[i].Stopped := st.ReadByte();  // Костылина
