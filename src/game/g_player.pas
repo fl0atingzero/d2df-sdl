@@ -882,11 +882,10 @@ begin
     GM_SINGLE, GM_COOP: gPlayers[a].FTeam := TEAM_COOP;
   end;
 
-  // Если командная игра - красим модель в цвет команды:
+  // Если командная игра - красим модель в цвет команды
+  // TODO: ensure the actual gamemode here instead?
   gPlayers[a].FColor := Color;
-  if gPlayers[a].FTeam in [TEAM_RED, TEAM_BLUE]
-    then gPlayers[a].FModel.Color := TEAMCOLOR[gPlayers[a].FTeam]
-    else gPlayers[a].FModel.Color := Color;
+  gPlayers[a].FModel.Color := g_PlayerModel_MakeColor(Color, gPlayers[a].FTeam);
 
   gPlayers[a].FUID := g_CreateUID(UID_PLAYER);
   gPlayers[a].FAlive := False;
@@ -2037,14 +2036,12 @@ begin
     end;
   end;
 
-  if FModel <> nil then
-    FModel.Free();
-
+  FModel.Free();
   FModel := m;
 
   if not (gGameSettings.GameMode in [GM_TDM, GM_CTF])
     then FModel.Color := FColor
-    else FModel.Color := TEAMCOLOR[FTeam];
+    else FModel.Color := g_PlayerModel_MakeColor(FColor, FTeam);
 
   FModel.SetWeapon(FCurrWeap);
   FModel.SetFlag(FFlag);
@@ -2070,12 +2067,11 @@ var
   i: Integer;
 begin
   for i := WP_FIRST to WP_LAST + 1 do
-    begin
-      if (Prefs[i] > WP_LAST + 1) then
-        FWeapPreferences[i] := 0
-      else
-        FWeapPreferences[i] := Prefs[i];
-    end;
+  begin
+    if Prefs[i] > WP_LAST + 1
+      then FWeapPreferences[i] := 0
+      else FWeapPreferences[i] := Prefs[i];
+  end;
 end;
 
 procedure TPlayer.SetWeaponPref(Weapon, Pref: Byte);
@@ -2155,12 +2151,11 @@ var
 begin
   OldTeam := FTeam;
   FTeam := Team;
-  case Team of
-    TEAM_RED, TEAM_BLUE:
-      FModel.Color := TEAMCOLOR[Team];
-    else
-      FModel.Color := FColor;
-  end;
+
+  if Team in [TEAM_RED, TEAM_BLUE]
+    then FModel.Color := g_PlayerModel_MakeColor(FColor, Team)
+    else FModel.Color := FColor;
+
   if (FTeam <> OldTeam) and g_Game_IsNet and g_Game_IsServer then
     MH_SEND_PlayerStats(FUID);
 end;
@@ -6386,7 +6381,7 @@ begin
 
   SetModel(str);
   if gGameSettings.GameMode in [GM_TDM, GM_CTF]
-    then FModel.Color := TEAMCOLOR[FTeam]
+    then FModel.Color := g_PlayerModel_MakeColor(FColor, FTeam)
     else FModel.Color := FColor;
 end;
 

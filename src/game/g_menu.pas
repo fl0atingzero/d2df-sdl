@@ -105,7 +105,6 @@ begin
 end;
 
 
-procedure ProcChangeColor(Sender: TGUIControl); forward;
 procedure ProcSelectModel(Sender: TGUIControl); forward;
 
 procedure ProcApplyOptions();
@@ -345,6 +344,11 @@ begin
     gPlayer1Settings.Model := Model.Name;
     gPlayer1Settings.Color := Model.Color;
   end;
+  with TGUIModelView(g_GUI_GetWindow('OptionsPlayersP1Menu').GetControl('mvP1ModelTeam')) do
+  begin
+    gPlayer1Settings.Model := Model.Name;
+    gPlayer1Settings.Color := g_PlayerModel_MakeColor(Model.Color, gPlayer1Settings.Team);
+  end;
 
   menu := TGUIMenu(g_GUI_GetWindow('OptionsPlayersP2Menu').GetControl('mOptionsPlayersP2Menu'));
   gPlayer2Settings.Name := b_Text_Unformat(TGUIEdit(menu.GetControl('edP2Name')).Text);
@@ -354,6 +358,11 @@ begin
   begin
     gPlayer2Settings.Model := Model.Name;
     gPlayer2Settings.Color := Model.Color;
+  end;
+  with TGUIModelView(g_GUI_GetWindow('OptionsPlayersP2Menu').GetControl('mvP2ModelTeam')) do
+  begin
+    gPlayer2Settings.Model := Model.Name;
+    gPlayer2Settings.Color := g_PlayerModel_MakeColor(Model.Color, gPlayer2Settings.Team);
   end;
 
   menu := TGUIMenu(g_GUI_GetWindow('OptionsPlayersP1WeaponMenu').GetControl('mOptionsPlayersP1WeaponMenu'));
@@ -1036,20 +1045,33 @@ end;
 procedure ProcChangeColor(Sender: TGUIControl);
 var
   window: TGUIWindow;
+  color: TRGB;
 begin
   window := g_GUI_GetWindow('OptionsPlayersP1Menu');
   with TGUIMenu(window.GetControl('mOptionsPlayersP1Menu')) do
-    TGUIModelView(window.GetControl('mvP1Model')).SetColor(
-                  Min(TGUIScroll(GetControl('scP1Red')).Value*16, 255),
-                  Min(TGUIScroll(GetControl('scP1Green')).Value*16, 255),
-                  Min(TGUIScroll(GetControl('scP1Blue')).Value*16, 255));
+  begin
+    color.r := Min(255, TGUIScroll(GetControl('scP1Red')).Value*16);
+    color.g := Min(255, TGUIScroll(GetControl('scP1Green')).Value*16);
+    color.b := Min(255, TGUIScroll(GetControl('scP1Blue')).Value*16);
+    TGUIModelView(window.GetControl('mvP1Model')).SetColor(color.r, color.g, color.b);
+
+    color := g_PlayerModel_MakeColor(color, IfThen(
+      TGUISwitch(GetControl('swP1Team')).ItemIndex = 0, TEAM_RED, TEAM_BLUE));
+    TGUIModelView(window.GetControl('mvP1ModelTeam')).SetColor(color.r, color.g, color.b);
+  end;
 
   window := g_GUI_GetWindow('OptionsPlayersP2Menu');
   with TGUIMenu(window.GetControl('mOptionsPlayersP2Menu')) do
-    TGUIModelView(window.GetControl('mvP2Model')).SetColor(
-                  Min(TGUIScroll(GetControl('scP2Red')).Value*16, 255),
-                  Min(TGUIScroll(GetControl('scP2Green')).Value*16, 255),
-                  Min(TGUIScroll(GetControl('scP2Blue')).Value*16, 255));
+  begin
+    color.r := Min(255, TGUIScroll(GetControl('scP2Red')).Value*16);
+    color.g := Min(255, TGUIScroll(GetControl('scP2Green')).Value*16);
+    color.b := Min(255, TGUIScroll(GetControl('scP2Blue')).Value*16);
+    TGUIModelView(window.GetControl('mvP2Model')).SetColor(color.r, color.g, color.b);
+
+    color := g_PlayerModel_MakeColor(color, IfThen(
+      TGUISwitch(GetControl('swP2Team')).ItemIndex = 0, TEAM_RED, TEAM_BLUE));
+    TGUIModelView(window.GetControl('mvP2ModelTeam')).SetColor(color.r, color.g, color.b);
+  end;
 end;
 
 procedure ProcSelectModel(Sender: TGUIControl);
@@ -1059,11 +1081,19 @@ var
 begin
   window := g_GUI_GetWindow('OptionsPlayersP1Menu');
   a := TGUIListBox(TGUIMenu(window.GetControl('mOptionsPlayersP1Menu')).GetControl('lsP1Model')).SelectedItem;
-  if a <> '' then TGUIModelView(window.GetControl('mvP1Model')).SetModel(a);
+  if a <> '' then
+  begin
+    TGUIModelView(window.GetControl('mvP1Model')).SetModel(a);
+    TGUIModelView(window.GetControl('mvP1ModelTeam')).SetModel(a);
+  end;
 
   window := g_GUI_GetWindow('OptionsPlayersP2Menu');
   a := TGUIListBox(TGUIMenu(window.GetControl('mOptionsPlayersP2Menu')).GetControl('lsP2Model')).SelectedItem;
-  if a <> '' then TGUIModelView(window.GetControl('mvP2Model')).SetModel(a);
+  if a <> '' then
+  begin
+    TGUIModelView(window.GetControl('mvP2Model')).SetModel(a);
+    TGUIModelView(window.GetControl('mvP2ModelTeam')).SetModel(a);
+  end;
 
   ProcChangeColor(nil);
 end;
@@ -1545,12 +1575,17 @@ procedure ProcOptionsPlayersAnim();
 var
   s: String;
 begin
-  if g_ActiveWindow.Name = 'OptionsPlayersP1Menu' then
-    s := 'P1'
-  else
-    s := 'P2';
+  if g_ActiveWindow.Name = 'OptionsPlayersP1Menu'
+    then s := 'P1'
+    else s := 'P2';
 
   with TGUIModelView(g_ActiveWindow.GetControl('mv'+s+'Model')) do
+  begin
+    NextAnim();
+    Model.GetCurrentAnimation.Loop := True;
+    Model.GetCurrentAnimationMask.Loop := True;
+  end;
+  with TGUIModelView(g_ActiveWindow.GetControl('mv'+s+'ModelTeam')) do
   begin
     NextAnim();
     Model.GetCurrentAnimation.Loop := True;
@@ -1562,24 +1597,24 @@ procedure ProcOptionsPlayersWeap();
 var
   s: String;
 begin
-  if g_ActiveWindow.Name = 'OptionsPlayersP1Menu' then
-    s := 'P1'
-  else
-    s := 'P2';
+  if g_ActiveWindow.Name = 'OptionsPlayersP1Menu'
+    then s := 'P1'
+    else s := 'P2';
 
-  with TGUIModelView(g_ActiveWindow.GetControl('mv'+s+'Model')) do
-    NextWeapon();
+  TGUIModelView(g_ActiveWindow.GetControl('mv'+s+'Model')).NextWeapon();
+  TGUIModelView(g_ActiveWindow.GetControl('mv'+s+'ModelTeam')).NextWeapon();
 end;
 
 procedure ProcOptionsPlayersRot();
 var
-  s: string;
+  s: String;
 begin
-  if g_ActiveWindow.Name = 'OptionsPlayersP1Menu' then s := 'P1' else s := 'P2';
-  with TGUIModelView(g_ActiveWindow.GetControl('mv'+s+'Model')).Model do
-  begin
-    if Direction = TDirection.D_LEFT then Direction := TDirection.D_RIGHT else Direction := TDirection.D_LEFT;
-  end;
+  if g_ActiveWindow.Name = 'OptionsPlayersP1Menu'
+    then s := 'P1'
+    else s := 'P2';
+
+  TGUIModelView(g_ActiveWindow.GetControl('mv'+s+'Model')).Model.InvertDirection();
+  TGUIModelView(g_ActiveWindow.GetControl('mv'+s+'ModelTeam')).Model.InvertDirection();
 end;
 
 procedure ProcDefaultMenuKeyDown (yes: Boolean);
@@ -2175,6 +2210,7 @@ begin
       Name := 'sw'+s+'Team';
       AddItem(_lc[I_MENU_PLAYER_TEAM_RED]);
       AddItem(_lc[I_MENU_PLAYER_TEAM_BLUE]);
+      OnChange := ProcChangeColor;
     end ;
     with AddList(_lc[I_MENU_PLAYER_MODEL], 12, 6) do
     begin
@@ -2201,6 +2237,7 @@ begin
       Max := 16;
       OnChange := ProcChangeColor;
     end;
+
     AddSpace();
     AddButton(@ProcOptionsPlayersMIMenu, _lc[I_MENU_MODEL_INFO]);
     AddButton(@ProcOptionsPlayersAnim, _lc[I_MENU_MODEL_ANIMATION]);
@@ -2208,13 +2245,21 @@ begin
     AddButton(@ProcOptionsPlayersRot, _lc[I_MENU_MODEL_ROTATE]);
     if s = 'P1' then AddButton(@ProcOptionsPlayerP1WeaponMenu, _lc[I_MENU_WEAPON])
     else AddButton(@ProcOptionsPlayerP2WeaponMenu, _lc[I_MENU_WEAPON]);
+
     with TGUIModelView(Menu.AddChild(TGUIModelView.Create)) do
     begin
       Name := 'mv'+s+'Model';
       X := GetControl('ls'+s+'Model').X+TGUIListBox(GetControl('ls'+s+'Model')).GetWidth+16;
       Y := GetControl('ls'+s+'Model').Y;
     end;
+    with TGUIModelView(Menu.AddChild(TGUIModelView.Create)) do
+    begin
+      Name := 'mv'+s+'ModelTeam';
+      X := Menu.GetControl('mv'+s+'Model').X;
+      Y := GetControl('ls'+s+'Model').Y+TGUIModelView(Menu.GetControl('mv'+s+'Model')).GetHeight+8;
+    end;
   end;
+
   Menu.DefControl := 'mOptionsPlayers'+s+'Menu';
 end;
 
